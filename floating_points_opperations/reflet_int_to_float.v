@@ -9,7 +9,7 @@ module int_to_float #(
     parameter int_size = 16,
     float_size = 32
     )(
-    input [int_size-1:0] int_in,
+    input signed [int_size-1:0] int_in,
     output [float_size-1:0] float_out
     );
 
@@ -38,8 +38,10 @@ module int_to_float #(
     wire [exponent_size(float_size)-1:0] exp_ret = exponent - exponent_biais(float_size);
 
     //computing mantissa
+    wire [mantissa_size(float_size)-1:0] mantissa = int_abs << (mantissa_size(float_size) - exponent)
 
-
+    //Cancaneting values to get the result
+    assign float_out = {sign, exp_ret, mantissa};
 
 endmodule
 
