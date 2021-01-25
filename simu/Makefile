@@ -1,5 +1,5 @@
 
-FPU = ../floating_points_opperations/reflet_int_to_float.v
+FPU = ../floating_points_opperations/reflet_int_to_float.v ../floating_points_opperations/reflet_float_to_int.v
 
 all : conv_tb.vcd
 

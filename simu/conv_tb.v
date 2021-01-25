@@ -2,11 +2,16 @@
 module conv_tb ();
 
     reg signed [15:0] int_in;
-    wire [31:0] float_out;
+    wire [31:0] float;
+    wire [15:0] int_out;
 
     reflet_int_to_float itf (
         .int_in(int_in),
-        .float_out(float_out));
+        .float_out(float));
+
+    reflet_float_to_int fti (
+        .float_in(float),
+        .int_out(int_out));
 
     initial
     begin

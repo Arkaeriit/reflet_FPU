@@ -21,8 +21,8 @@ function automatic integer mantissa_size(input integer float_size);
     mantissa_size = float_size - 1 - exponent_size(float_size);
 endfunction
 
-function automatic integer exponent_biais(input integer float_size);
-    exponent_biais = 2 ** (exponent_size(float_size)-1) - 1;
+function automatic integer exponent_bias(input integer float_size);
+    exponent_bias = 2 ** (exponent_size(float_size)-1) - 1;
 endfunction
 
 `endif
