@@ -12,14 +12,23 @@ module conv_tb ();
     begin
         $dumpfile("conv_tb.vcd");
         $dumpvars(0, conv_tb);
-        //0xFFFA; sign = 1; exponent = 2; biased exponent = -125; mantissa = b1000000.. Expected float: 0xC1C00000
+        //0xFFFA; sign = 1; exponent = 2; biased exponent = 129; mantissa = b1000000.. Expected float: 0xC0C00000
         int_in = -6; 
         #1;
-        //sign = 0; exponent = 7; biased exponent = -120; mantissa = 00001100000.....  expected float = 0x44060000
+        //sign = 0; exponent = 7; biased exponent = 134; mantissa = 00001100000.....  expected float = 0x4306000
         int_in = 134; 
         #1;
-        //sign = 1; exponent = 11; baised exponent = -116; mantissa = 10110000000100000....  expected float = 0xC6581000
+        //sign = 1; exponent = 11; biased exponent = 138; mantissa = 1011000000100000....  expected float = 0xC5581000
         int_in = -3457; 
+        #1;
+        //sign = 1, exponent = 0; biased exponent = 127; mantissa = 000...  expected float = 0xBF800000
+        int_in = -1;
+        #1;
+        //sign = 0, exponent = 0; biased exponent = 127; mantissa = 000...  expected float = 0x3F800000
+        int_in = +1;
+        #1;
+        //Special case, expected float = 0x00000000
+        int_in = 0;
         #1;
         $finish;
     end

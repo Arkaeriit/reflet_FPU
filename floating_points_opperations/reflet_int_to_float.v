@@ -35,13 +35,13 @@ module reflet_int_to_float #(
             assign list_max_or[j] = list_max_or[j-1] | list_max_int[j];
     endgenerate
     wire [$clog2(int_size-1)-1:0] exponent = list_max_or[int_size-2];
-    wire [exponent_size(float_size)-1:0] exp_ret = exponent - exponent_biais(float_size);
+    wire [exponent_size(float_size)-1:0] exp_ret = exponent + exponent_biais(float_size);
 
     //computing mantissa
     wire [mantissa_size(float_size)-1:0] mantissa = int_abs << (mantissa_size(float_size) - exponent);
 
     //Cancaneting values to get the result
-    assign float_out = {sign, exp_ret, mantissa};
+    assign float_out = ( int_in == 0 ? 0 : {sign, exp_ret, mantissa});
 
 endmodule
 
