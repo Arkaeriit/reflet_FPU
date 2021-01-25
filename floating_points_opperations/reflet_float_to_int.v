@@ -18,14 +18,17 @@ module reflet_float_to_int #(
     wire [exponent_size(float_size)-1:0] exponent = exponent_biased - exponent_bias(float_size);
     
     //Decoding mantissa
-    wire [mantissa_size(float_size):0] value = {1'b1, float_in[mantissa_size(float_size)-1:0]};
-    wire [int_size-2:0] ret_abs = value << exponent;
+    wire [mantissa_size(float_size)-1:0] mantissa = float_in[mantissa_size(float_size)-1:0];
+    wire [mantissa_size(float_size):0] value = {1'b1, mantissa};
+    wire [int_size-2:0] ret_abs = value >> (mantissa_size(float_size) - exponent);
 
     //Solving edge cases
-    wire [int_size-2:0] ret_spcs = ( exponent >= int_size ? ~0 : //Big number
-                                     ( &exponent ? 1 : //exponent = -1
-                                       ( exponent[exponent_size(float_size)-1] ? 0 : //small exponent 
-                                         ( ret_abs )))); //normal case
+    wire [int_size-2:0] ret_spcs = ( float_in[float_size-1:0] == 0 ? 0 : // 0
+                                     ( exponent >= int_size ? ~0 : //Big number
+                                       ( &exponent ? 1 : //exponent = -1
+                                         ( exponent[exponent_size(float_size)-1] ? 0 : //small exponent 
+                                        
+                                           ( ret_abs ))))); //normal case
 
     //Decoding sign
     wire sign = float_in[float_size-1];
