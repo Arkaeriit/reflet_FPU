@@ -17,13 +17,13 @@ function automatic integer exponent_size(input integer float_size);
     endcase
 endfunction
 
-function automatic integer mantissa_size(input integer float_size)
+function automatic integer mantissa_size(input integer float_size);
     mantissa_size = float_size - 1 - exponent_size(float_size);
 endfunction
 
-function automatic integer exponent_biais(input integer float_size)
-    exponent_biais = 2 ** exponent_size(float_size) - 1;
-enddunction
+function automatic integer exponent_biais(input integer float_size);
+    exponent_biais = 2 ** (exponent_size(float_size)-1) - 1;
+endfunction
 
 `endif
 

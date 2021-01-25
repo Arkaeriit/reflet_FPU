@@ -3,9 +3,7 @@
 |signed integer into a floating point number.|
 \-------------------------------------------*/
 
-`include "reflet_float.vh"
-
-module int_to_float #(
+module reflet_int_to_float #(
     parameter int_size = 16,
     float_size = 32
     )(
@@ -13,32 +11,34 @@ module int_to_float #(
     output [float_size-1:0] float_out
     );
 
+    `include "reflet_float.vh"
+
     //reading sign
     wire sign = int_in[int_size-1];
 
     //Compuning int absolute value
     wire [int_size-2:0] int_cc2 = ~int_in[int_size-2:0] + 1;
-    wire [int_size-2:0] int_abs = (sign ? int_cc2 : int_in[int_size-2:0];
+    wire [int_size-2:0] int_abs = (sign ? int_cc2 : int_in[int_size-2:0]);
 
     //computing exponant
     wire [$clog2(int_size-1)-1:0] list_max_int [int_size-2:0];
     genvar i;
-    generate
+    generate //getting the index of the highest 1 bit
         for(i=0; i<int_size-1; i=i+1)
-            testBit #(.size(int_size), .index(i)) tb (int_abs, list_max_int[i]);
+            testBit #(.size(int_size-1), .index(i)) tb (int_abs, list_max_int[i]);
     endgenerate
-    wire [$clog2(int_size-1)-2:0] list_max_or [int_size-2:0];
+    wire [$clog2(int_size-1)-1:0] list_max_or [int_size-2:0];
     assign list_max_or[0] = list_max_int[0];
     genvar j;
     generate
-        for(j=1; j<int_size-1; j=j+1)
+        for(j=1; j<int_size-1; j=j+1) //combining the index result to have only one
             assign list_max_or[j] = list_max_or[j-1] | list_max_int[j];
     endgenerate
     wire [$clog2(int_size-1)-1:0] exponent = list_max_or[int_size-2];
     wire [exponent_size(float_size)-1:0] exp_ret = exponent - exponent_biais(float_size);
 
     //computing mantissa
-    wire [mantissa_size(float_size)-1:0] mantissa = int_abs << (mantissa_size(float_size) - exponent)
+    wire [mantissa_size(float_size)-1:0] mantissa = int_abs << (mantissa_size(float_size) - exponent);
 
     //Cancaneting values to get the result
     assign float_out = {sign, exp_ret, mantissa};
@@ -67,7 +67,6 @@ module testBit #(
         else
             assign out = (in[index] && !(|(in[size-1:index+1])) ? index : 0);
     endgenerate
-
 
 endmodule
 
