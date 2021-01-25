@@ -51,7 +51,7 @@ module reflet_float_add #(
     genvar i;
     generate //getting the index of the highest 1 bit
         for(i=0; i<=mantissa_size(float_size)+1; i=i+1)
-            testBit #(.size(mantissa_size(float_size)+1), .index(i)) tb (value_result , list_max_res[i]);
+            testBit #(.size(mantissa_size(float_size)+2), .index(i)) tb (value_result , list_max_res[i]);
     endgenerate
     wire [$clog2(mantissa_size(float_size)+1)-1:0] list_max_or [mantissa_size(float_size)+1:0];
     assign list_max_or[0] = list_max_res[0];
