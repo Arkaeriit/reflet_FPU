@@ -38,8 +38,9 @@ module reflet_float_add #(
     //Computing the mantissas to prepare for the opperation
     wire [exponent_size(float_size)-1:0] exp_max = max[mantissa_size(float_size)+exponent_size(float_size)-1:mantissa_size(float_size)];
     wire [exponent_size(float_size)-1:0] exp_min = min[mantissa_size(float_size)+exponent_size(float_size)-1:mantissa_size(float_size)];
-    wire [mantissa_size(float_size)+1:0] value_max = {2'b01, max[mantissa_size(float_size):0]};
-    wire [mantissa_size(float_size)+1:0] value_min = {2'b01, min[mantissa_size(float_size):0]} >> exp_max - exp_min;
+    wire [mantissa_size(float_size)+1:0] value_max = {2'b01, max[mantissa_size(float_size)-1:0]};
+    wire [mantissa_size(float_size)+1:0] value_min_raw = {2'b01, min[mantissa_size(float_size)-1:0]};
+    wire [mantissa_size(float_size)+1:0] value_min = value_min_raw >> (exp_max - exp_min);
 
     //Doing the computation
     wire sign_max = max[float_size-1];
@@ -64,7 +65,7 @@ module reflet_float_add #(
 
     //Computing new exponent and mantissa
     wire [exponent_size(float_size)-1:0] exp_ret = exp_max + (max_index - mantissa_size(float_size));
-    wire [mantissa_size(float_size)-1:0] mnt_ret = value_result << (2 + max_index - mantissa_size(float_size));
+    wire [mantissa_size(float_size)-1:0] mnt_ret = value_result[mantissa_size(float_size)-1:0] >> (max_index - mantissa_size(float_size));
 
     //merging the result
     assign sum = ( enable_add | enable_sub ? {sign_max, exp_ret, mnt_ret} : 0 );

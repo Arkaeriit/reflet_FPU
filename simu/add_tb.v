@@ -36,7 +36,7 @@ module add_tb();
         .in1(flt1),
         .in2(flt2),
         .enable_add(1'b1),
-        .enable_sub(1'b1),
+        .enable_sub(1'b0),
         .sum(fltSum));
 
     initial
@@ -46,6 +46,21 @@ module add_tb();
         in1 = 5;
         in2 = 15;
         #1;
+        in1 = 28;
+        in2 = -15;
+        #1;
+        in1 = 1398;
+        in2 = -12300;
+        #1;
+        in1 = 0;
+        in2 = 0;
+        #1;
+        in1 = -12;
+        in2 = -12;
+        #1;
+        $finish;
+        $finish;
+        $finish;
         $finish;
     end
 
