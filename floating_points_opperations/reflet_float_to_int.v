@@ -24,9 +24,9 @@ module reflet_float_to_int #(
 
     //Solving edge cases
     wire [int_size-2:0] ret_spcs = ( float_in[float_size-1:0] == 0 ? 0 : // 0
-                                     ( exponent >= int_size ? ~0 : //Big number
-                                       ( &exponent ? 1 : //exponent = -1
-                                         ( exponent[exponent_size(float_size)-1] ? 0 : //small exponent 
+                                     ( &exponent ? 1 : //exponent = -1
+                                       ( exponent[exponent_size(float_size)-1] ? 0 : //small exponent 
+                                         ( exponent >= int_size ? ~0 : //Big number
                                         
                                            ( ret_abs ))))); //normal case
 
