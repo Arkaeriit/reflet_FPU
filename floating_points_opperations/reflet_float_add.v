@@ -65,10 +65,15 @@ module reflet_float_add #(
 
     //Computing new exponent and mantissa
     wire [exponent_size(float_size)-1:0] exp_ret = exp_max + (max_index - mantissa_size(float_size));
-    wire [mantissa_size(float_size)-1:0] mnt_ret = value_result[mantissa_size(float_size)-1:0] >> (max_index - mantissa_size(float_size));
+    wire [mantissa_size(float_size)+1:0] mnt_shift = ( exp_ret > exp_max ? value_result >> (exp_ret - exp_max) : value_result << (exp_max - exp_ret) );
+    wire [mantissa_size(float_size)-1:0] mnt_ret = mnt_shift[mantissa_size(float_size)-1:0];
+
+    //Edge cases, not needed but increase accuracy for little cost
+    //wire [float_size-1:0] sum_spc = ( ((exp_max == exp_min) && (value_min == value_max) && (sign_max != sign_min)) || value_result == 0 ? 0 : {sign_max, exp_ret, mnt_ret} );
+    wire [float_size-1:0] sum_spc = {sign_max, exp_ret, mnt_ret};
 
     //merging the result
-    assign sum = ( enable_add | enable_sub ? {sign_max, exp_ret, mnt_ret} : 0 );
+    assign sum = ( enable_add | enable_sub ? sum_spc : 0 );
 
 endmodule
      
