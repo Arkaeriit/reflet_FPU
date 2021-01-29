@@ -64,15 +64,20 @@ module reflet_float_add #(
     wire [$clog2(mantissa_size(float_size)+1)-1:0] max_index = list_max_or[mantissa_size(float_size)+1];
 
     //Computing new exponent and mantissa
-    wire [exponent_size(float_size)-1:0] exp_ret = exp_max + (max_index - mantissa_size(float_size));
+    wire [exponent_size(float_size):0] exp_ret_full = exp_max + (max_index - mantissa_size(float_size));
+    wire [exponent_size(float_size)-1:0] exp_ret = exp_ret_full[exponent_size(float_size)-1:0];
     wire [mantissa_size(float_size)+1:0] mnt_shift = ( exp_ret > exp_max ? value_result >> (exp_ret - exp_max) : value_result << (exp_max - exp_ret) );
     wire [mantissa_size(float_size)-1:0] mnt_ret = mnt_shift[mantissa_size(float_size)-1:0];
 
     //Edge cases, not needed but increase accuracy for little cost
+    wire [exponent_size(float_size)-1:0] infinity_exp = ~0;
+    wire [mantissa_size(float_size)-1:0] infinity_mnt = 0;
     wire [float_size-1:0] sum_spc = ( ((exp_max == exp_min) && (value_min == value_max) && (sign_max != sign_min)) || value_result == 0 ? 0 : //Substraction of two equal values
                                       ( exp_min == 0 && value_min == 0 ? {sign_max, exp_max, mnt_ret} :  //one of the numbers is 0
-                                        ( {sign_max, exp_ret, mnt_ret} )));
-    //wire [float_size-1:0] sum_spc = {sign_max, exp_ret, mnt_ret};
+                                        ( exp_ret_full[exponent_size(float_size)] ? {sign_max, infinity_exp, infinity_mnt} : //Overflow, the result is greater than the biggers representable number
+                                            ( {sign_max, exp_ret, mnt_ret} ))));
+    //wire [float_size-1:0] sum_spc = {sign_max, exp_ret, mnt_ret}; //Ignoring
+    //edge cases
 
     //merging the result
     assign sum = ( enable_add | enable_sub ? sum_spc : 0 );
