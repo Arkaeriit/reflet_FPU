@@ -69,8 +69,10 @@ module reflet_float_add #(
     wire [mantissa_size(float_size)-1:0] mnt_ret = mnt_shift[mantissa_size(float_size)-1:0];
 
     //Edge cases, not needed but increase accuracy for little cost
-    //wire [float_size-1:0] sum_spc = ( ((exp_max == exp_min) && (value_min == value_max) && (sign_max != sign_min)) || value_result == 0 ? 0 : {sign_max, exp_ret, mnt_ret} );
-    wire [float_size-1:0] sum_spc = {sign_max, exp_ret, mnt_ret};
+    wire [float_size-1:0] sum_spc = ( ((exp_max == exp_min) && (value_min == value_max) && (sign_max != sign_min)) || value_result == 0 ? 0 : //Substraction of two equal values
+                                      ( exp_min == 0 && value_min == 0 ? {sign_max, exp_max, mnt_ret} :  //one of the numbers is 0
+                                        ( {sign_max, exp_ret, mnt_ret} )));
+    //wire [float_size-1:0] sum_spc = {sign_max, exp_ret, mnt_ret};
 
     //merging the result
     assign sum = ( enable_add | enable_sub ? sum_spc : 0 );
