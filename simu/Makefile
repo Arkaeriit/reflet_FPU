@@ -1,7 +1,7 @@
 
-FPU = ../floating_points_opperations/reflet_int_to_float.v ../floating_points_opperations/reflet_float_to_int.v ../floating_points_opperations/reflet_float_add.v
+FPU = ../floating_points_opperations/reflet_int_to_float.v ../floating_points_opperations/reflet_float_to_int.v ../floating_points_opperations/reflet_float_add.v ../floating_points_opperations/reflet_float_mult.v
 
-all : conv_tb.vcd add_tb.vcd
+all : conv_tb.vcd add_tb.vcd mult_tb.vcd
 
 conv_tb.vvp : $(FPU) conv_tb.v ../floating_points_opperations/reflet_float.vh
 	cp ../floating_points_opperations/reflet_float.vh ./
@@ -24,6 +24,18 @@ add_tb.vcd : add_tb.vvp
 
 add_tb : add_tb.vcd
 	gtkwave add_tb.vcd
+
+mult_tb.vvp : $(FPU) mult_tb.v ../floating_points_opperations/reflet_float.vh
+	cp ../floating_points_opperations/reflet_float.vh ./
+	iverilog $(FPU) mult_tb.v -o mult_tb.vvp
+	rm -f reflet_float.vh
+
+mult_tb.vcd : mult_tb.vvp
+	vvp mult_tb.vvp
+
+mult_tb : mult_tb.vcd
+	gtkwave mult_tb.vcd
+
 
 clean :
 	rm -f *.vcd
