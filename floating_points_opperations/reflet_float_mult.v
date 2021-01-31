@@ -24,14 +24,19 @@ module reflet_float_mult #(
     wire sign2 = in2[float_size-1];
 
     //Doing the computaion
-    wire [exponent_size(float_size)-1:0] exp_sum = exp1 + exp2 - exponent_bias(float_size); 
+    wire [exponent_size(float_size)-1:0] exp_sum = exp1 + exp2 - exponent_bias(float_size) + 1; 
     wire [2*mantissa_size(float_size)+1:0] mnt_product;
     reflet_float_mult_mult #(.size(mantissa_size(float_size)+1)) mult_hard (clk, {1'b1, mnt1}, {1'b1, mnt2}, mnt_product);
-    wire [mantissa_size(float_size)-1:0] mnt_ret = mnt_product[2*mantissa_size(float_size)-1:mantissa_size(float_size)];
+    wire [mantissa_size(float_size)-1:0] mnt_ret = mnt_product[2*mantissa_size(float_size):mantissa_size(float_size)+1];
     wire sign_ret = sign1 ^ sign2;
 
     //Merging the result
-    assign mult = {sign_ret, exp_sum ,mnt_ret};
+    wire [float_size-2:0] mult_abs = ( in1[float_size-2:0] == 0 || in2[float_size-2:0] == 0 ? 0 :
+                                       {exp_sum, mnt_ret} );
+    wire [float_size-1:0] mult_ret = {sign_ret, mult_abs};
+
+    //exporting result
+    assign mult = ( enable ? mult_ret : 0 );
 
 endmodule
 

@@ -71,9 +71,6 @@ module add_tb();
         in2 = 100;
         #1;
         $finish;
-        $finish;
-        $finish;
-        $finish;
     end
 
 endmodule

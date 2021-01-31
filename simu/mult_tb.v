@@ -10,7 +10,7 @@ module mult_tb();
     wire signed [31:0] int2;
     wire [31:0] fltPrd;
     wire signed [31:0] convPrd;
-    wire signed [31:0] rawPrd = in1 + in2;
+    wire signed [31:0] rawPrd = in1 * in2;
 
     //Conversion
     reflet_int_to_float #(.int_size(32)) itf1 (
@@ -51,11 +51,8 @@ module mult_tb();
         in1 = 28;
         in2 = 15;
         #1;
-        in1 = 65489;
-        in2 = 173949;
-        #1;
         in1 = 1398;
-        in2 = -12300;
+        in2 = -1230;
         #1;
         in1 = 0;
         in2 = 0;
@@ -69,9 +66,6 @@ module mult_tb();
         in1 = 0;
         in2 = 100;
         #1;
-        $finish;
-        $finish;
-        $finish;
         $finish;
     end
 
