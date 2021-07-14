@@ -5,8 +5,8 @@
 |single-precision and double-precision.         |
 \----------------------------------------------*/
 
-`ifndef reflet_float
-`define ireflet_float
+/*`ifndef reflet_float*/
+/*`define ireflet_float*/
 
 function automatic integer exponent_size(input integer float_size);
     case(float_size)
@@ -25,5 +25,5 @@ function automatic integer exponent_bias(input integer float_size);
     exponent_bias = 2 ** (exponent_size(float_size)-1) - 1;
 endfunction
 
-`endif
+/*`endif*/
 
