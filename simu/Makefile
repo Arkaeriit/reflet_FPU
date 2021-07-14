@@ -1,7 +1,7 @@
 
-FPU = ../floating_points_opperations/reflet_int_to_float.v ../floating_points_opperations/reflet_float_to_int.v ../floating_points_opperations/reflet_float_add.v ../floating_points_opperations/reflet_float_mult.v
+FPU = ../floating_points_opperations/reflet_int_to_float.v ../floating_points_opperations/reflet_float_to_int.v ../floating_points_opperations/reflet_float_add.v ../floating_points_opperations/reflet_float_mult.v ../floating_points_opperations/reflet_float_mult_mult.v ../floating_points_opperations/reflet_float_fisqrt.v
 
-all : conv_tb.vcd add_tb.vcd mult_tb.vcd
+all : conv_tb.vcd add_tb.vcd mult_tb.vcd fisqrt_tb
 
 conv_tb.vvp : $(FPU) conv_tb.v ../floating_points_opperations/reflet_float.vh
 	cp ../floating_points_opperations/reflet_float.vh ./
@@ -35,6 +35,17 @@ mult_tb.vcd : mult_tb.vvp
 
 mult_tb : mult_tb.vcd
 	gtkwave mult_tb.vcd
+
+fisqrt_tb.vvp : $(FPU) fisqrt_tb.v ../floating_points_opperations/reflet_float.vh
+	cp ../floating_points_opperations/reflet_float.vh ./
+	iverilog $(FPU) fisqrt_tb.v -o fisqrt_tb.vvp
+	rm -f reflet_float.vh
+
+fisqrt_tb.vcd : fisqrt_tb.vvp
+	vvp fisqrt_tb.vvp
+
+fisqrt_tb : fisqrt_tb.vcd
+	gtkwave fisqrt_tb.vcd
 
 
 clean :
