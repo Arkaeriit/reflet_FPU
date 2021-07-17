@@ -17,7 +17,7 @@ module reflet_float_add #(
     output [float_size-1:0] sum
     );
 
-    `include "reflet_float.vh"
+    `include "reflet_float_functions.vh"
 
     wire [float_size-1:0] in2_fixed = (enable_sub ? {!in2[float_size-1], in2[float_size-2:0]} : in2); //negating in2 if we need to substract
 

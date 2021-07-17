@@ -11,7 +11,7 @@ module reflet_float_to_int #(
     output signed [int_size-1:0] int_out
     );
 
-    `include "reflet_float.vh"
+    `include "reflet_float_functions.vh"
 
     //Decoding exponent
     wire [exponent_size(float_size)-1:0] exponent_biased = float_in[exponent_size(float_size)+mantissa_size(float_size)-1:mantissa_size(float_size)];

@@ -13,7 +13,7 @@ module reflet_float_mult #(
     output [float_size-1:0] mult
     );
 
-    `include "reflet_float.vh"
+    `include "reflet_float_functions.vh"
 
     //Separating various parts of numbers
     wire [mantissa_size(float_size)-1:0] mnt1 = in1[mantissa_size(float_size)-1:0];

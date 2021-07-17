@@ -11,7 +11,7 @@ module reflet_int_to_float #(
     output [float_size-1:0] float_out
     );
 
-    `include "reflet_float.vh"
+    `include "reflet_float_functions.vh"
 
     //reading sign
     wire sign = int_in[int_size-1];

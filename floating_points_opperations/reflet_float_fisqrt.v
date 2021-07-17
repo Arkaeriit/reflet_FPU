@@ -13,7 +13,7 @@ module reflet_float_fisqrt #(
     output [float_size-1:0] out
     );
 
-    `include "reflet_float.vh"
+    `include "reflet_float_functions.vh"
 
     function automatic [float_size-1:0] magic_number(input integer float_size);
         case(float_size)
@@ -109,7 +109,7 @@ module reflet_float_half #(
     output [float_size-1:0] out
     );
     
-    `include "reflet_float.vh"
+    `include "reflet_float_functions.vh"
 
     wire [mantissa_size(float_size)-1:0] mantissa = in[mantissa_size(float_size)-1:0];
     wire [exponent_size(float_size)-1:0] exponent_half = in[float_size-2:mantissa_size(float_size)] - 1;
