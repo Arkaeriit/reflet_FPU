@@ -3,6 +3,8 @@
 |floating point numbers.     |
 \---------------------------*/
 
+`include "reflet_float_opperations.vh"
+
 module reflet_float_mult #(
     parameter float_size = 32
     )(
@@ -10,7 +12,8 @@ module reflet_float_mult #(
     input enable,
     input [float_size-1:0] in1,
     input [float_size-1:0] in2,
-    output [float_size-1:0] mult
+    output [float_size-1:0] mult,
+    output ready
     );
 
     `include "reflet_float_functions.vh"
@@ -37,8 +40,18 @@ module reflet_float_mult #(
                                        {exp_sum, mnt_ret} );
     wire [float_size-1:0] mult_ret = {sign_ret, mult_abs};
 
-    //exporting result
+    //Exporting result
     assign mult = ( enable ? mult_ret : 0 );
+
+    //Waiting for the result to be calculated
+    reflet_float_wait_ready #(
+        .time_to_wait(`multiplication_time),
+        .input_size(float_size * 2)
+    ) wait_ready (
+        .clk(clk),
+        .enable(enable),
+        .in({in1, in2}),
+        .ready(ready));
 
 endmodule
 

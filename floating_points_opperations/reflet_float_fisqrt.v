@@ -4,13 +4,16 @@
 |of a floating point number.|
 \--------------------------*/
 
+`include "reflet_float_opperations.vh"
+
 module reflet_float_fisqrt #(
     parameter float_size = 32
     )(
     input clk,
     input enable,
     input [float_size-1:0] in,
-    output [float_size-1:0] out
+    output [float_size-1:0] out,
+    output ready
     );
 
     `include "reflet_float_functions.vh"
@@ -67,6 +70,16 @@ module reflet_float_fisqrt #(
         .mult(low_prescision_output)); //TODO: enable optional better prescision
 
     assign out = ( enable ? low_prescision_output : 0 );
+
+    //Waiting for the result to be calculated
+    reflet_float_wait_ready #(
+        .time_to_wait(`multiplication_time * 3),
+        .input_size(float_size)
+    ) wait_ready (
+        .clk(clk),
+        .enable(enable),
+        .in({in}),
+        .ready(ready));
 
 endmodule
 

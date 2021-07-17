@@ -13,8 +13,15 @@ module reflet_float_mult_mult #(
     output [2*size-1:0] mult
     );
 
-    assign mult = in1 * in2;
-
+    //assign mult = in1 * in2;
+    reg [2*size-1:0] mult1;
+    reg [2*size-1:0] mult2;
+    always @ (posedge clk)
+    begin
+        mult1 <= in1 * in2;
+        mult2 <= mult1;
+    end
+    assign mult = mult2;
+    
 endmodule
-
 
