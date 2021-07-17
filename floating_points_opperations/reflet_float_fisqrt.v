@@ -4,8 +4,6 @@
 |of a floating point number.|
 \--------------------------*/
 
-`include "reflet_float_opperations.vh"
-
 module reflet_float_fisqrt #(
     parameter float_size = 32
     )(
@@ -36,19 +34,23 @@ module reflet_float_fisqrt #(
 
     wire [float_size-1:0] masked_shifted = magic_number(float_size) - ( in >> 1);
     wire [float_size-1:0] squared_shift;
+    wire ready_1;
     reflet_float_square #(float_size) square1 (
         .clk(clk),
         .enable(enable),
+        .ready(ready_1),
         .in(masked_shifted),
         .out(squared_shift));
 
     wire [float_size-1:0] half_in;
     reflet_float_half #(float_size) half (.in(in), .out(half_in));
 
+    wire ready_2;
     wire [float_size-1:0] first_product;
     reflet_float_mult #(float_size) mult1 (
         .clk(clk),
-        .enable(enable),
+        .enable(ready_1),
+        .ready(ready_2),
         .in1(half_in),
         .in2(squared_shift),
         .mult(first_product));
@@ -64,22 +66,13 @@ module reflet_float_fisqrt #(
     wire [float_size-1:0] low_prescision_output;
     reflet_float_mult #(float_size) mult2 (
         .clk(clk),
-        .enable(enable),
+        .enable(ready_2),
+        .ready(ready),
         .in1(masked_shifted),
         .in2(substraction_result),
         .mult(low_prescision_output)); //TODO: enable optional better prescision
 
     assign out = ( enable ? low_prescision_output : 0 );
-
-    //Waiting for the result to be calculated
-    reflet_float_wait_ready #(
-        .time_to_wait(`multiplication_time * 3),
-        .input_size(float_size)
-    ) wait_ready (
-        .clk(clk),
-        .enable(enable),
-        .in({in}),
-        .ready(ready));
 
 endmodule
 
@@ -97,12 +90,14 @@ module reflet_float_square #(
     input clk,
     input enable,
     input [float_size-1:0] in,
-    output [float_size-1:0] out
+    output [float_size-1:0] out,
+    output ready
     );
 
     reflet_float_mult #(float_size) m (
         .clk(clk),
         .enable(enable),
+        .ready(ready),
         .in1(in),
         .in2(in),
         .mult(out));

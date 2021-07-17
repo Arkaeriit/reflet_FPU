@@ -3,8 +3,6 @@
 |floating point numbers.     |
 \---------------------------*/
 
-`include "reflet_float_opperations.vh"
-
 module reflet_float_mult #(
     parameter float_size = 32
     )(
@@ -28,7 +26,13 @@ module reflet_float_mult #(
 
     //Doing the computaion
     wire [2*mantissa_size(float_size)+1:0] mnt_product;
-    reflet_float_mult_mult #(.size(mantissa_size(float_size)+1)) mult_hard (clk, {1'b1, mnt1}, {1'b1, mnt2}, mnt_product);
+    reflet_float_mult_mult #(.size(mantissa_size(float_size)+1)) mult_hard (
+        .clk(clk), 
+        .enable(enable),
+        .in1({1'b1, mnt1}), 
+        .in2({1'b1, mnt2}), 
+        .mult(mnt_product),
+        .ready(ready));
     wire [mantissa_size(float_size)-1:0] mnt_ret = ( mnt_product[2*mantissa_size(float_size)+1]
                                                       ?  mnt_product[2*mantissa_size(float_size):mantissa_size(float_size)+1]
                                                       :  mnt_product[2*mantissa_size(float_size)-1:mantissa_size(float_size)]);
@@ -42,16 +46,6 @@ module reflet_float_mult #(
 
     //Exporting result
     assign mult = ( enable ? mult_ret : 0 );
-
-    //Waiting for the result to be calculated
-    reflet_float_wait_ready #(
-        .time_to_wait(`multiplication_time),
-        .input_size(float_size * 2)
-    ) wait_ready (
-        .clk(clk),
-        .enable(enable),
-        .in({in1, in2}),
-        .ready(ready));
 
 endmodule
 
