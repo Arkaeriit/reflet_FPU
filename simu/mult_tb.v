@@ -11,6 +11,8 @@ module mult_tb();
     wire [31:0] fltPrd;
     wire signed [31:0] convPrd;
     wire signed [31:0] rawPrd = in1 * in2;
+    wire signed [63:0] bigPrd = in1 * in2;
+    wire produc_ok = convPrd == rawPrd;
 
     //Conversion
     reflet_int_to_float #(.int_size(32)) itf1 (
@@ -19,15 +21,15 @@ module mult_tb();
     reflet_int_to_float #(.int_size(32)) itf2 (
         .int_in(in2),
         .float_out(flt2));
-    reflet_float_to_int #(.int_size(32)) fti1 (
+    reflet_float_to_int #(.int_size(32)) fti_prod (
         .float_in(fltPrd),
         .int_out(convPrd));
 
     //Conversion monitor
-    reflet_float_to_int #(.int_size(32)) fti2 (
+    reflet_float_to_int #(.int_size(32)) fti_in1 (
         .float_in(flt1),
         .int_out(int1));
-    reflet_float_to_int #(.int_size(32)) fti3 (
+    reflet_float_to_int #(.int_size(32)) fti_in2 (
         .float_in(flt2),
         .int_out(int2));
 
@@ -65,6 +67,24 @@ module mult_tb();
         #1;
         in1 = 0;
         in2 = 100;
+        #1;
+        in1 = 7658;
+        in2 = 9875;
+        #1;
+        in1 = 456453;
+        in2 = 8088911;
+        #1;
+        in1 = 125;
+        in2 = 985;
+        #1;
+        in1 = 1133;
+        in2 = 7755;
+        #1;
+        in1 = 2378;
+        in2 = 8866;
+        #1;
+        in1 = 512;
+        in2 = 512;
         #1;
         $finish;
     end

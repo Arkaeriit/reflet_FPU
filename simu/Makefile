@@ -1,7 +1,7 @@
 
 FPU = ../floating_points_opperations/reflet_int_to_float.v ../floating_points_opperations/reflet_float_to_int.v ../floating_points_opperations/reflet_float_add.v ../floating_points_opperations/reflet_float_mult.v ../floating_points_opperations/reflet_float_mult_mult.v ../floating_points_opperations/reflet_float_fisqrt.v
 
-all : conv_tb.vcd add_tb.vcd mult_tb.vcd fisqrt_tb
+all : conv_tb.vcd add_tb.vcd mult_tb.vcd fisqrt_tb.vcd
 
 conv_tb.vvp : $(FPU) conv_tb.v ../floating_points_opperations/reflet_float.vh
 	cp ../floating_points_opperations/reflet_float.vh ./
