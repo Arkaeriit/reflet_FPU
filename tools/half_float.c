@@ -186,6 +186,12 @@ half_float_t half_float_add(half_float_t h1, half_float_t h2){
     return struct_to_num(&sRes);
 }
 
+//Substract a half float from another
+half_float_t half_float_sub(half_float_t h1, half_float_t h2){
+    half_float_t minus_h2 = h2 ^ (1 << 15);
+    return half_float_add(h1, minus_h2);
+}
+
 //Multiply two 16 bit floats
 half_float_t half_float_mult(half_float_t h1, half_float_t h2){
     half_float_s s1, s2, sRes;
@@ -195,6 +201,7 @@ half_float_t half_float_mult(half_float_t h1, half_float_t h2){
     return struct_to_num(&sRes);
 }
 
+#if 0
 //
 // Some testing
 //
@@ -252,4 +259,6 @@ int main(void){
 
     return 0;
 }
+
+#endif
 
