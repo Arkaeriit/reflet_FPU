@@ -4,6 +4,10 @@
 |of a floating point number.|
 \--------------------------*/
 
+//Note: If the input number is negative, the retureded value
+//is is opposite of the fisqrt of the absolute value of the
+//input number
+
 module reflet_float_fisqrt #(
     parameter float_size = 32
     )(
@@ -15,6 +19,8 @@ module reflet_float_fisqrt #(
     );
 
     `include "reflet_float_functions.vh"
+
+    wire [float_size-1:0] abs_in ={1'b0, in[float_size-2:0];
 
     function automatic [float_size-1:0] magic_number(input integer float_size);
         case(float_size)
@@ -32,7 +38,7 @@ module reflet_float_fisqrt #(
         endcase
     endfunction
 
-    wire [float_size-1:0] masked_shifted = magic_number(float_size) - ( in >> 1);
+    wire [float_size-1:0] masked_shifted = magic_number(float_size) - ( abs_in >> 1);
     wire [float_size-1:0] squared_shift;
     wire ready_1;
     reflet_float_square #(float_size) square1 (
@@ -43,7 +49,7 @@ module reflet_float_fisqrt #(
         .out(squared_shift));
 
     wire [float_size-1:0] half_in;
-    reflet_float_half #(float_size) half (.in(in), .out(half_in));
+    reflet_float_half #(float_size) half (.in(abs_in), .out(half_in));
 
     wire ready_2;
     wire [float_size-1:0] first_product;
@@ -72,7 +78,7 @@ module reflet_float_fisqrt #(
         .in2(substraction_result),
         .mult(low_prescision_output)); //TODO: enable optional better prescision
 
-    assign out = ( enable ? low_prescision_output : 0 );
+    assign out = ( enable ? {in[float_size-1], low_prescision_output[float_size-2:0]} : 0 );
 
 endmodule
 
