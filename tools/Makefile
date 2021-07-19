@@ -1,5 +1,6 @@
 # Flags
-FLAGS := -Wall -g
+#FLAGS := -Wall -g
+FLAGS := -Wall -O3
 
 # Commands
 CC := gcc
@@ -17,7 +18,7 @@ fisqrt_tb.bin: fisqrt_tb.o
 	$(CC) $^ $(FLAGS) -o $@
 
 finding_16b_magic_word.bin: finding_16b_magic_word.o half_float.o
-	$(CC) $^ $(FLAGS) -lm -o $@
+	$(CC) $^ $(FLAGS) -lm -lpthread -o $@
 
 clean:
 	rm -f *.o
