@@ -85,17 +85,39 @@ static float half_s_to_float(const half_float_s* hf){
     int16_t full_mantissa = hf->mantissa;
     float ret = full_mantissa;
     int16_t factor_power = unbiased_exponent - MANTISSA_SIZE + 1;
-    if(factor_power > 0){
-        int64_t factor_to_mantissa = 2 << factor_power;
-        ret *= factor_to_mantissa;
-    }else{
+    if(factor_power <= 0){
         int64_t dividend_to_mantissa = 2 << -factor_power;
         ret /= dividend_to_mantissa;
+    }else if(factor_power >= 2){
+        int64_t factor_to_mantissa = 2 << (factor_power - 2);
+        ret *= factor_to_mantissa;
     }
     if(hf->sign){
         ret *= -1;
     }
     return ret;
+}
+
+//Add two half floats
+static void half_s_add(const half_float_s* in1, const half_float_s* in2, half_float_s* out){
+    int64_t raw1 = (int64_t) in1->mantissa << (int64_t) in1->exponent;
+    if(in1->sign) raw1 *= -1;
+    int64_t raw2 = (int64_t) in2->mantissa << (int64_t) in2->exponent;
+    if(in2->sign) raw2 *= -1;
+    int64_t raw_res = raw1 + raw2;
+    if(raw_res < 0){
+        out->sign = true;
+        raw_res *= -1;
+    }else{
+        out->sign = false;
+    }
+    out->exponent = 0;
+    while(raw_res & (~MANTISSA_MASK)){
+        out->exponent++;
+        raw_res = raw_res >> 1;
+    }
+    out->mantissa = raw_res;
+    half_float_comply(out);
 }
 
 /*--------------------------\
@@ -137,16 +159,25 @@ static void num_to_struct(half_float_t num, half_float_s* s){
 
 //Convert 32 bits floats into 16 bits ones
 half_float_t float_to_half(float f){
-    half_float_s hf;
-    float_to_half_s(f, &hf);
-    return struct_to_num(&hf);
+    half_float_s s;
+    float_to_half_s(f, &s);
+    return struct_to_num(&s);
 }
 
 //Convert 16 bits floats into 32 bits ones
 float half_to_float(half_float_t f){
-    half_float_s hf;
-    num_to_struct(f, &hf);
-    return half_s_to_float(&hf);
+    half_float_s s;
+    num_to_struct(f, &s);
+    return half_s_to_float(&s);
+}
+
+//Add two 16 bit floats
+half_float_t half_float_add(half_float_t h1, half_float_t h2){
+    half_float_s s1, s2, sRes;
+    num_to_struct(h1, &s1);
+    num_to_struct(h2, &s2);
+    half_s_add(&s1, &s2, &sRes);
+    return struct_to_num(&sRes);
 }
 
 //
@@ -154,19 +185,38 @@ float half_to_float(half_float_t f){
 //
 
 #include "stdio.h"
-void test(float f){
+
+void test_conv(float f){
     half_float_t hf = float_to_half(f);
     float conv = half_to_float(hf);
     printf("f: %f, conv: %f.\n", f, conv);
 }
 
+void test_add(float f1, float f2){
+    half_float_t h1 = float_to_half(f1);
+    half_float_t h2 = float_to_half(f2);
+    half_float_t hRes = half_float_add(h1, h2);
+    float fRes = half_to_float(hRes);
+    printf("%f + %f = %f -> %f + %f = %f\n", f1, f2, f1+f2, half_to_float(h1), half_to_float(h2), fRes);  
+}
+
 int main(void){
-    test(1.5);
-    test(8.3);
-    test(3.3);
-    test(12.5);
-    test(120.2);
-    test(0.02);
+    test_conv(1.5);
+    test_conv(8.3);
+    test_conv(3.3);
+    test_conv(12.5);
+    test_conv(120.2);
+    test_conv(0.02);
+    test_conv(0.0003);
+    test_conv(25000.7);
+    test_conv(750000.3);
+
+    test_add(1.0, 2.0);
+    test_add(1.82, 12.89);
+    test_add(-30.0, 12.5);
+    test_add(1000, -3000);
+    test_add(1000, 0);
+
     return 0;
 }
 
