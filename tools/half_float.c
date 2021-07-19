@@ -8,16 +8,10 @@
 #include <stdbool.h>
 
 typedef struct {
+    uint32_t mantissa; //Mantissa, including the starting 1
     bool sign;         //True if negative
     int8_t exponent;   //Biased exponent
-    uint16_t mantissa; //Mantissa, including the starting 1
 } half_float_s;
-
-//Functions
-static void half_float_comply(half_float_s* hf);
-static void float_to_half_s(float f, half_float_s* hf);
-static float half_s_to_float(const half_float_s* hf);
-
 
 #define EXPONENT_SIZE      5
 #define MANTISSA_SIZE      10// Note: this size does not take into account the first 1 in the struct
@@ -35,19 +29,23 @@ static float half_s_to_float(const half_float_s* hf);
 static void half_float_comply(half_float_s* hf){
     //Check exponent value
     int8_t unbiased_exponent = hf->exponent - EXPONENT_BIAIS;
-    if(unbiased_exponent < -14){ //Set number to 0
-        hf->exponent = -15 + EXPONENT_BIAIS;
+    if(unbiased_exponent < 1 - EXPONENT_BIAIS){ //Set number to 0
+        hf->exponent = 0;
         hf->mantissa = 0;
         return;
     }
-    if(unbiased_exponent > 15){ //Set number to the max value
-        hf->exponent = 15 + EXPONENT_BIAIS;
+    if(unbiased_exponent > EXPONENT_BIAIS){ //Set number to the max value
+        hf->exponent = ~0 & EXPONENT_MASK;
         hf->mantissa = ~0 & MANTISSA_MASK;
         return;
     }
     //Check mantissa value
-    if(hf->mantissa & (uint16_t) ~MANTISSA_MASK){ //Mantissa too big
-        uint16_t exccess_bits = hf->mantissa >> (MANTISSA_SIZE + 1);
+    if(!hf->mantissa){ //Number equal to 0
+        hf->exponent = 0;
+        return;
+    }
+    if(hf->mantissa & (uint32_t) ~MANTISSA_MASK){ //Mantissa too big
+        uint32_t exccess_bits = hf->mantissa >> (MANTISSA_SIZE + 1);
         while(exccess_bits){
             exccess_bits = exccess_bits >> 1;
             hf->mantissa = hf->mantissa >> 1;
@@ -120,6 +118,14 @@ static void half_s_add(const half_float_s* in1, const half_float_s* in2, half_fl
     half_float_comply(out);
 }
 
+//Multiply two half floats
+static void half_s_mult(const half_float_s* in1, const half_float_s* in2, half_float_s* out){
+    out->sign = !in1->sign != !in2->sign;
+    out->mantissa = ((uint64_t) in1->mantissa * (uint64_t) in2->mantissa) >> (MANTISSA_SIZE);
+    out->exponent = in1->exponent + in2->exponent - EXPONENT_BIAIS;
+    half_float_comply(out);
+}
+
 /*--------------------------\
 |Converting 16 bits number  |
 |from the convinient struct.|
@@ -180,6 +186,15 @@ half_float_t half_float_add(half_float_t h1, half_float_t h2){
     return struct_to_num(&sRes);
 }
 
+//Multiply two 16 bit floats
+half_float_t half_float_mult(half_float_t h1, half_float_t h2){
+    half_float_s s1, s2, sRes;
+    num_to_struct(h1, &s1);
+    num_to_struct(h2, &s2);
+    half_s_mult(&s1, &s2, &sRes);
+    return struct_to_num(&sRes);
+}
+
 //
 // Some testing
 //
@@ -200,6 +215,14 @@ void test_add(float f1, float f2){
     printf("%f + %f = %f -> %f + %f = %f\n", f1, f2, f1+f2, half_to_float(h1), half_to_float(h2), fRes);  
 }
 
+void test_mult(float f1, float f2){
+    half_float_t h1 = float_to_half(f1);
+    half_float_t h2 = float_to_half(f2);
+    half_float_t hRes = half_float_mult(h1, h2);
+    float fRes = half_to_float(hRes);
+    printf("%f * %f = %f -> %f * %f = %f\n", f1, f2, f1 * f2, half_to_float(h1), half_to_float(h2), fRes);  
+}
+
 int main(void){
     test_conv(1.5);
     test_conv(8.3);
@@ -210,12 +233,22 @@ int main(void){
     test_conv(0.0003);
     test_conv(25000.7);
     test_conv(750000.3);
+    printf("\n");
 
     test_add(1.0, 2.0);
     test_add(1.82, 12.89);
     test_add(-30.0, 12.5);
     test_add(1000, -3000);
     test_add(1000, 0);
+    printf("\n");
+
+    test_mult(1.0, 2.0);
+    test_mult(1.82, 12.89);
+    test_mult(-30.0, 12.5);
+    test_mult(10, -3);
+    test_mult(1000, 0);
+    test_mult(1000, 1);
+    printf("\n");
 
     return 0;
 }
