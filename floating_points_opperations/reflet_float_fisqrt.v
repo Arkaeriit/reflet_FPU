@@ -20,7 +20,7 @@ module reflet_float_fisqrt #(
 
     `include "reflet_float_functions.vh"
 
-    wire [float_size-1:0] abs_in ={1'b0, in[float_size-2:0];
+    wire [float_size-1:0] abs_in = {1'b0, in[float_size-2:0]};
 
     function automatic [float_size-1:0] magic_number(input integer float_size);
         case(float_size)
