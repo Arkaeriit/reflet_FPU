@@ -24,7 +24,7 @@ module reflet_float_fisqrt #(
 
     function automatic [float_size-1:0] magic_number(input integer float_size);
         case(float_size)
-            16: magic_number = 0; //Todo
+            16: magic_number = 16'h5B5C;
             32: magic_number = 32'h5F375A86;
             64: magic_number = 64'h5FE6EB50C7B537A9;
         endcase

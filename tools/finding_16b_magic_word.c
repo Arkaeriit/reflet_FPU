@@ -99,8 +99,9 @@ uint16_t best_magic_number(int thread_count){
     return best_magic;
 }
 
+#define THREAD_NUMBER 4
 int main(void){
-    printf("The best magic number for the 16 bits fisqrt is %X.\n", best_magic_number(4));
+    printf("The best magic number for the 16 bits fisqrt is %X.\n", best_magic_number(THREAD_NUMBER));
     return 0;
 }
 
