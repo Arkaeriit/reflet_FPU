@@ -1,9 +1,9 @@
 
-FPU := ../floating_points_operations/reflet_int_to_float.v ../floating_points_operations/reflet_float_to_int.v ../floating_points_operations/reflet_float_add.v ../floating_points_operations/reflet_float_mult.v ../floating_points_operations/reflet_float_mult_mult.v ../floating_points_operations/reflet_float_fisqrt.v ../floating_points_operations/reflet_float_wait_ready.v ../floating_points_operations/reflet_float_comp.v # ../float_processing/reflet_float_au.v
+FPU := ../floating_points_operations/reflet_int_to_float.v ../floating_points_operations/reflet_float_to_int.v ../floating_points_operations/reflet_float_add.v ../floating_points_operations/reflet_float_mult.v ../floating_points_operations/reflet_float_mult_mult.v ../floating_points_operations/reflet_float_fisqrt.v ../floating_points_operations/reflet_float_wait_ready.v ../floating_points_operations/reflet_float_comp.v ../float_processing/reflet_float_au.v
 
 HEADERS := ./reflet_float_functions.vh ./reflet_fpu.vh
 
-TEST_BENCHES := conv_tb add_tb mult_tb fisqrt_tb comp_tb
+TEST_BENCHES := conv_tb add_tb mult_tb fisqrt_tb comp_tb reflet_float_au_tb
 
 all:
 
