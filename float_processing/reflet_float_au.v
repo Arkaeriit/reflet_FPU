@@ -66,7 +66,7 @@ module reflet_float_au #(
     assign fisqrt_in = ( opcode == `OPP_DIV ? flt_in2 : flt_in1 ); //In most case we take flt_in1 as input inless we are dividing. In the other case the module is not enabled
 
     //add inputs
-    assign add_en = opcode == `OPP_ADD || (opcode == `OPP_MULTADD && mult_1_rdy);
+    assign add_en = opcode == `OPP_ADD || (opcode == `OPP_MULTADD && mult_2_rdy);
     assign sub_en = opcode == `OPP_SUB;
     assign add_flt_in1 = ( opcode == `OPP_MULTADD ? mult_2_out : flt_in1 );
     assign add_flt_in2 = ( opcode == `OPP_MULTADD ? flt_in3 : flt_in2 );
@@ -75,14 +75,14 @@ module reflet_float_au #(
     assign mult_1_en = opcode == `OPP_MUL || opcode == `OPP_CUBE || opcode == `OPP_TESSERACT || opcode == `OPP_TRIMULT || ((opcode == `OPP_DIV || opcode == `OPP_INV) && fisqrt_rdy);
     assign mult_1_flt_in1 = ( (opcode == `OPP_MUL || opcode == `OPP_CUBE || opcode == `OPP_TESSERACT || opcode == `OPP_TRIMULT) ? flt_in1 : fisqrt_out);
     assign mult_1_flt_in2 = ( (opcode == `OPP_MUL || opcode == `OPP_TRIMULT) ? flt_in2 :
-                                ( opcode == `OPP_CUBE || opcode == `OPP_TESSERACT ? flt_in1 : fisqrt_out));
+                                ( (opcode == `OPP_CUBE || opcode == `OPP_TESSERACT) ? flt_in1 : fisqrt_out));
 
     //mult2 input
-    assign mult_2_en = opcode == `OPP_DIV || opcode == `OPP_CUBE || opcode == `OPP_TESSERACT || ( opcode == `OPP_TRIMULT ? mult_1_rdy : opcode == `OPP_MULTADD );
-    assign mult_2_flt_in1 = ( opcode == `OPP_DIV || opcode == `OPP_CUBE || opcode == `OPP_TESSERACT || opcode == `OPP_TESSERACT ? mult_1_out : flt_in1 );
-    assign mult_2_flt_in2 = ( (opcode == `OPP_CUBE || opcode == `OPP_MULTADD) ? flt_in2 : 
+    assign mult_2_en = ( (opcode == `OPP_DIV || opcode == `OPP_CUBE || opcode == `OPP_TESSERACT || opcode == `OPP_TRIMULT) ? mult_1_rdy : opcode == `OPP_MULTADD );
+    assign mult_2_flt_in1 = ( (opcode == `OPP_DIV || opcode == `OPP_CUBE || opcode == `OPP_TESSERACT || opcode == `OPP_TESSERACT || opcode == `OPP_TRIMULT) ? mult_1_rdy : flt_in1 );
+    assign mult_2_flt_in2 = ( (opcode == `OPP_MULTADD) ? flt_in2 : 
                               ( opcode == `OPP_TRIMULT ? flt_in3 :
-                                ( opcode == `OPP_DIV ? flt_in1 : mult_1_out )));
+                                ( (opcode == `OPP_DIV || opcode == `OPP_CUBE) ? flt_in1 : mult_1_out )));
 
     //Global outputs
     assign flt_out = ( opcode == `OPP_MULTADD || opcode == `OPP_ADD || opcode == `OPP_SUB ? add_out :
@@ -91,7 +91,7 @@ module reflet_float_au #(
     assign ready = ( opcode == `OPP_ADD || opcode == `OPP_SUB ? enable :
                    ( opcode == `OPP_DIV || opcode == `OPP_CUBE || opcode == `OPP_TESSERACT || opcode == `OPP_TRIMULT || opcode == `OPP_MULTADD ? mult_2_rdy :
                      ( opcode == `OPP_MUL || opcode == `OPP_INV ? mult_1_rdy : 
-                       ( opcode == `OPP_FISQRT ? fisqrt_out : 0 ))));
+                       ( opcode == `OPP_FISQRT ? fisqrt_rdy : 0 ))));
 
 endmodule
 
