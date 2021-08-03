@@ -24,6 +24,7 @@ module reflet_float_au_tb();
     reflet_float_au #(.float_size(32)) au (
         .clk(clk),
         .enable(1'b1),
+        .ctrl_flag(2'b01),
         .opcode(opcode),
         .ready(ready),
         .flt_in1(flt1),
