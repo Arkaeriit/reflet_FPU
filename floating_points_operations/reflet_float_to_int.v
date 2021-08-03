@@ -26,7 +26,7 @@ module reflet_float_to_int #(
                                         : value >> (mantissa_size(float_size) - exponent) );
 
     //Solving edge cases
-    wire [int_size-2:0] ret_spcs = ( float_in[float_size-1:0] == 0 ? 0 : // 0
+    wire [int_size-2:0] ret_spcs = ( float_in[float_size-2:0] == 0 ? 0 : // 0
                                      ( &exponent ? 1 : //exponent = -1
                                        ( exponent[exponent_size(float_size)-1] ? 0 : //small exponent 
                                          ( exponent >= int_size ? ~0 : //Big number
@@ -35,7 +35,7 @@ module reflet_float_to_int #(
     //Decoding sign
     wire sign = float_in[float_size-1];
     wire [int_size-2:0] ret_cc2 = ~ret_spcs[int_size-2:0] + 1;
-    assign int_out = {sign, ( sign ? ret_cc2 : ret_spcs ) };
+    assign int_out = ( ret_spcs == 0 ? 0 : {sign, ( sign ? ret_cc2 : ret_spcs ) } );
 
 endmodule
 
