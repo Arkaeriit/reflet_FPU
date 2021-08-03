@@ -5,9 +5,11 @@ module reflet_float_au_tb();
     always #1 clk <= !clk;
 
     reg [5:0] opcode = 0;
-    reg [1:0] ctrl_flag = 1'b01;
+    reg [1:0] ctrl_flag = 2'b01;
     wire ready;
     wire cmp_flag;
+    wire [15:0] int_out;
+    wire [15:0] int_in = 123;
 
     reg signed [15:0] in1 = 56;
     reg signed [15:0] in2 = -549;
@@ -23,7 +25,7 @@ module reflet_float_au_tb();
     reflet_float_to_int #(.int_size(32), .float_size(32)) fti (.float_in(flt_out), .int_out(out_int));
 
     //Arithmetic unit
-    reflet_float_au #(.float_size(32)) au (
+    reflet_float_au #(.float_size(32), .integer_size(16)) au (
         .clk(clk),
         .enable(1'b1),
         .ctrl_flag(ctrl_flag),
@@ -34,7 +36,8 @@ module reflet_float_au_tb();
         .flt_in2(flt2),
         .flt_in3(flt3),
         .flt_out(flt_out),
-        .flag_out());
+        .int_in(int_in),
+        .int_out(int_out));
 
     initial
     begin
@@ -55,6 +58,12 @@ module reflet_float_au_tb();
         #50;
         ctrl_flag <= 2'b10;
         #50;
+        opcode <= opcode + 1;
+        #100;
+        opcode <= opcode + 1;
+        #100;
+        opcode <= opcode + 1;
+        #100;
         opcode <= opcode + 1;
         #100;
         opcode <= opcode + 1;

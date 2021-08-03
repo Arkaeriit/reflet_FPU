@@ -7,7 +7,8 @@
 `include "reflet_fpu.vh"
 
 module reflet_float_au #(
-    parameter float_size = 32
+    parameter float_size = 32,
+    integer_size = 16
     )(
     //ctrl signals
     input clk,
@@ -21,8 +22,27 @@ module reflet_float_au #(
     input [float_size-1:0] flt_in2,
     input [float_size-1:0] flt_in3,
     output [float_size-1:0] flt_out,
-    output flag_out
+    //integer io
+    input [integer_size-1:0] int_in,
+    output [integer_size-1:0] int_out
     );
+
+    //int to float module
+    wire [float_size-1:0] i_t_f_out;
+    reflet_int_to_float #(.int_size(integer_size), .float_size(float_size)) itf (
+        .int_in(int_in),
+        .float_out(i_t_f_out));
+
+    //float to int module
+    wire [integer_size-1:0] f_t_i_out;
+    reg [integer_size-1:0] f_t_i_out_reg;
+    always @ (posedge clk)
+        if(opcode == `OPP_F_TO_I)
+            f_t_i_out_reg <= f_t_i_out;
+    assign int_out = f_t_i_out_reg;
+    reflet_float_to_int #(.int_size(integer_size), .float_size(float_size)) fti (
+        .float_in(flt_in1),
+        .int_out(f_t_i_out));
 
     //fisqrt module
     wire [float_size-1:0] fisqrt_in, fisqrt_out;
@@ -106,8 +126,9 @@ module reflet_float_au #(
     assign flt_out = ( (opcode == `OPP_MULTADD || opcode == `OPP_ADD || opcode == `OPP_SUB) ? add_out :
                        ( (opcode == `OPP_DIV || opcode == `OPP_CUBE || opcode == `OPP_TESSERACT || opcode == `OPP_TRIMULT) ? mult_2_out :
                          ( opcode == `OPP_MUL ? mult_1_out :
-                           ( (opcode == `OPP_INV || opcode == `OPP_SET_SIGN) ? set_sign_out : fisqrt_out ))));
-    assign ready = ( (opcode == `OPP_ADD || opcode == `OPP_SUB || opcode == `OPP_NOP || opcode == `OPP_SET_SIGN || opcode == `OPP_CMP) ? enable :
+                           ( (opcode == `OPP_INV || opcode == `OPP_SET_SIGN) ? set_sign_out :
+                             ( opcode == `OPP_I_TO_F ? i_t_f_out : fisqrt_out )))));
+    assign ready = ( (opcode == `OPP_ADD || opcode == `OPP_SUB || opcode == `OPP_NOP || opcode == `OPP_SET_SIGN || opcode == `OPP_CMP || opcode == `OPP_F_TO_I || opcode == `OPP_I_TO_F) ? enable :
                      ( (opcode == `OPP_DIV || opcode == `OPP_CUBE || opcode == `OPP_TESSERACT || opcode == `OPP_TRIMULT || opcode == `OPP_MULTADD) ? mult_2_rdy :
                        ( (opcode == `OPP_MUL || opcode == `OPP_INV) ? mult_1_rdy : 
                          ( opcode == `OPP_FISQRT ? fisqrt_rdy : 0 ))));
