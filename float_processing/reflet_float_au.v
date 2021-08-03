@@ -14,6 +14,7 @@ module reflet_float_au #(
     input enable,
     input [5:0] opcode,
     input [1:0] ctrl_flag,
+    output cmp_flag,
     output ready,
     //data signals
     input [float_size-1:0] flt_in1,
@@ -106,10 +107,28 @@ module reflet_float_au #(
                        ( (opcode == `OPP_DIV || opcode == `OPP_CUBE || opcode == `OPP_TESSERACT || opcode == `OPP_TRIMULT) ? mult_2_out :
                          ( opcode == `OPP_MUL ? mult_1_out :
                            ( (opcode == `OPP_INV || opcode == `OPP_SET_SIGN) ? set_sign_out : fisqrt_out ))));
-    assign ready = ( (opcode == `OPP_ADD || opcode == `OPP_SUB || opcode == `OPP_NOP || opcode == `OPP_SET_SIGN) ? enable :
+    assign ready = ( (opcode == `OPP_ADD || opcode == `OPP_SUB || opcode == `OPP_NOP || opcode == `OPP_SET_SIGN || opcode == `OPP_CMP) ? enable :
                      ( (opcode == `OPP_DIV || opcode == `OPP_CUBE || opcode == `OPP_TESSERACT || opcode == `OPP_TRIMULT || opcode == `OPP_MULTADD) ? mult_2_rdy :
                        ( (opcode == `OPP_MUL || opcode == `OPP_INV) ? mult_1_rdy : 
                          ( opcode == `OPP_FISQRT ? fisqrt_rdy : 0 ))));
+
+    //Comparison module
+    wire cmp_en = opcode == `OPP_CMP;
+    wire [1:0] cmp_order = ctrl_flag & {cmp_en, cmp_en};
+    wire cmp_out;
+    reg cmp_out_reg;
+    always @ (posedge clk)
+        if(cmp_en)
+            cmp_out_reg <= cmp_out;
+    reflet_float_comp #(float_size) comp (
+        .order(cmp_order),
+        .in1(flt_in1),
+        .in2(flt_in3), //Note: the choice of flt_in3 istead of flt_in2 is related to the processor architecture
+        .out(cmp_out));
+    assign cmp_flag = cmp_out_reg;
+
+
+
 
 endmodule
 

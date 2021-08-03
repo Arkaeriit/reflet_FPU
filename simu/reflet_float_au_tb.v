@@ -5,7 +5,9 @@ module reflet_float_au_tb();
     always #1 clk <= !clk;
 
     reg [5:0] opcode = 0;
+    reg [1:0] ctrl_flag = 1'b01;
     wire ready;
+    wire cmp_flag;
 
     reg signed [15:0] in1 = 56;
     reg signed [15:0] in2 = -549;
@@ -24,9 +26,10 @@ module reflet_float_au_tb();
     reflet_float_au #(.float_size(32)) au (
         .clk(clk),
         .enable(1'b1),
-        .ctrl_flag(2'b01),
+        .ctrl_flag(ctrl_flag),
         .opcode(opcode),
         .ready(ready),
+        .cmp_flag(cmp_flag),
         .flt_in1(flt1),
         .flt_in2(flt2),
         .flt_in3(flt3),
@@ -49,7 +52,9 @@ module reflet_float_au_tb();
         opcode <= opcode + 1;
         #100;
         opcode <= opcode + 1;
-        #100;
+        #50;
+        ctrl_flag <= 2'b10;
+        #50;
         opcode <= opcode + 1;
         #100;
         opcode <= opcode + 1;
