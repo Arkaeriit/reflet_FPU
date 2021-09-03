@@ -9,6 +9,7 @@
 
 require 'string'
 require 'stringbuilder'
+require 'filestream'
 
 --constants
 local max_number_of_words <comptime> = 50 --The maximum number of words in an line. If there is more words, they will be ignored. More words means that theire is a more serious issur somewhere else
@@ -45,6 +46,22 @@ function pure_line:__tostring()
        end
    end
    builder:write("}")
+   return builder:promote()
+end
+
+function pure_file:__len()
+    return self.len
+end
+
+function pure_file:__tostring()
+   local builder: stringbuilder 
+   builder:write("len = ")
+   builder:write(#self)
+   for i=0,<#self do
+       builder:write("# ")
+       builder:write(self.content[i])
+       builder:write("\n")
+   end
    return builder:promote()
 end
 
@@ -93,6 +110,21 @@ end
 
 -----------------------------------Public API-----------------------------------
 
+--Convert an open file into a pure file
+--Close the file after the opperation
+global function purify_file(file: filestream): pure_file
+    local ret: pure_file
+    ret.len = 0
+    local str, _, OK = file:read("l")
+    while OK == 0 do
+        ret.content[#ret] = purify_line(str)
+        ret.len = #ret + 1
+        str, _, OK = file:read("l")
+    end
+    file:close()
+    return ret
+end
+
 print("aaa")
 local pure = purify_line("la aa bb;xDD")
 print(pure)
@@ -100,3 +132,5 @@ pure = purify_line("la aa ;xDD")
 print(pure)
 pure = purify_line("          ")
 print(pure)
+local pure_f = purify_file(filestream.open("parser.lua", "r"))
+print(pure_f)
