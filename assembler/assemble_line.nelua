@@ -6,6 +6,7 @@
 require 'string'
 require 'math'
 require 'stringbuilder'
+require 'io'
 require 'parser'
 
 -------------------------------Constants definitions----------------------------
@@ -201,6 +202,67 @@ local function pre_assemble(line: pure_line): extended_instruction
         end
     end
     return ret
+end
+
+--Check that all the values in an extented_instruction are in the
+--correct range. As this should not happen it only prints a message
+--if needed.
+local function check_extended(inst: extended_instruction)
+    local builder: stringbuilder
+    builder:write("Error in instruction ")
+    builder:write(inst)
+    builder:write("\n")
+    local check_OK = true
+    for i=0,<3 do
+        if inst.arg[i] < 0 or inst.arg[i] > 7 then
+            check_OK = false
+            builder:write("Argument ")
+            builder:write(i)
+            builder:write(" is ")
+            builder:write(inst.arg[i])
+            builder:write(".\n")
+        end
+    end
+    if inst.opcode < 0 or inst.opcode > 63 then
+        check_OK = false
+        builder:write("Opcode is ")
+        builder:write(inst.opcode)
+        builder:write(".\n")
+    end
+    local msg = builder:promote()
+    if not check_OK then
+        io.stderr:write(msg)
+    end
+end
+
+--convert an extended instruction into a 16 bit machine code number
+local function post_assemble(inst: extended_instruction): uint16
+    local ret: uint16 = 0
+    ret = ret | (inst.arg[2] << 0)
+    ret = ret | (inst.arg[1] << 3)
+    ret = ret | (inst.arg[0] << 6)
+    ret = ret | (inst.opcode << 9)
+    if not inst.arithmetic then
+        ret = ret | (1 << 15)
+    end
+    return ret
+end
+
+-----------------------------------Public API-----------------------------------
+
+--This function takes a pure_line of assembler as argument and assemble it
+--The first return value is the raw machine code. The second is an error code
+--(0 if OK, 1 in case of an error in the assembler). The third is a pretty
+--version of the assemble result for debugiong purpose.
+global function assemble_line(line: pure_line): (uint16, integer, string)
+    local OK = is_line_valid(line)
+    if not OK then
+        return 0, 1, "Error!"
+    end
+    local extended = pre_assemble(line)
+    check_extended(extended)
+    local machine_code = post_assemble(extended)
+    return machine_code, 0, tostring(extended)
 end
 
 print("Patate")
