@@ -132,5 +132,6 @@ pure = purify_line("la aa ;xDD")
 print(pure)
 pure = purify_line("          ")
 print(pure)
-local pure_f = purify_file(filestream.open("parser.lua", "r"))
+local pure_f = purify_file(filestream.open("parser.nelua", "r"))
 print(pure_f)
+
