@@ -35,7 +35,7 @@ This module is used to change the sign of a floating-point number. The effect on
 * If `order` is set to `2'b00`, `out` will be set to 0.
 * If `order` is set to `2'b01`, `out` will be the opposite of `in`.
 * If `order` is set to `2'b10`, `out` will have the same absolute value as `in` but will be positive.
-* If `order` is set to `2'b10`, `out` will have the same absolute value as `in` but will be negative.
+* If `order` is set to `2'b11`, `out` will have the same absolute value as `in` but will be negative.
 
 ## reflet\_float\_mult\_mult
 The 4 previously described modules only contain combinatory logic. But, the fast inverse square root module and the multiplication module need to perform integer multiplication. The integer multiplication might or might not use sequential logic. You need to adapt the module so that it fit your design. You also need to adapt the value of the macro `multilication_time` so that it is equal to the number of clock cycles needed to perform the integer multiplication.
