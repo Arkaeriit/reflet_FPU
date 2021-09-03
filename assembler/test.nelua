@@ -1,0 +1,19 @@
+require 'filestream'
+require 'io'
+require 'assemble_line'
+require 'parser'
+
+local f = io.open("test.asm", "r")
+local pure = purify_file(f)
+print(pure)
+for i=0,<#pure do
+    local mc, err, pretty = assemble_line(pure.content[i])
+    io.stdout:write(string.format("%04X", mc))
+    io.stdout:write(" ")
+    io.stdout:write(err)
+    io.stdout:write(" ")
+    io.stdout:write(pretty)
+    io.stdout:write("\n")
+    
+end
+

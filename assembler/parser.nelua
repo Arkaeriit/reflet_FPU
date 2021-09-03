@@ -57,6 +57,7 @@ function pure_file:__tostring()
    local builder: stringbuilder 
    builder:write("len = ")
    builder:write(#self)
+   builder:write("\n")
    for i=0,<#self do
        builder:write("# ")
        builder:write(self.content[i])
@@ -124,14 +125,4 @@ global function purify_file(file: filestream): pure_file
     file:close()
     return ret
 end
-
-print("aaa")
-local pure = purify_line("la aa bb;xDD")
-print(pure)
-pure = purify_line("la aa ;xDD")
-print(pure)
-pure = purify_line("          ")
-print(pure)
-local pure_f = purify_file(filestream.open("parser.nelua", "r"))
-print(pure_f)
 
