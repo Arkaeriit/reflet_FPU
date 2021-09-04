@@ -137,10 +137,10 @@ local function is_line_valid(line: pure_line): boolean
     if #line > 4 then
         return false
     end
-    if not is_mnemonic_valid(line.content[0]) then
+    if not is_mnemonic_valid(line[0]) then
         return false
     end
-    local inst = get_inst(line.content[0])
+    local inst = get_inst(line[0])
     for i=0,<3 do
         --check size
         if (inst.arguments[i] == args_choice.void and (#line - 1) > i) or
@@ -149,12 +149,12 @@ local function is_line_valid(line: pure_line): boolean
         end
         --check content
         if inst.arguments[i] == args_choice.reg then
-            if not is_reg_valid(line.content[i+1]) then
+            if not is_reg_valid(line[i+1]) then
                 return false
             end
         end
         if inst.arguments[i] == args_choice.flag then
-            if not is_flag_valid(line.content[i+1]) then
+            if not is_flag_valid(line[i+1]) then
                 return false
             end
         end
@@ -187,18 +187,18 @@ end
 
 --convert a valid line into an extended instruction
 local function pre_assemble(line: pure_line): extended_instruction
-    local inst = get_inst(line.content[0])
+    local inst = get_inst(line[0])
     local ret = extended_instruction{inst.arithmetic, inst.opcode, {0, 0, 0}}
     --Registering register arguments
     for i=0,<3 do
         if inst.arguments[i] == args_choice.reg then
-            ret.arg[i] = tointeger(line.content[i+1]:sub(2,2))
+            ret.arg[i] = tointeger(line[i+1]:sub(2,2))
         end
     end
     --Taking care of flags. Note: The flags have to be in the second argument of the machine code instruction because of the way the FPU is wired; but the NOTIF and JMP instruction have a flag as only orgument. Thus, we process flags in a second time to ensure they are set to the second argument.
     for i=0,<3 do
         if inst.arguments[i] == args_choice.flag then
-            ret.arg[2] = tointeger(get_flag(line.content[i+1]))
+            ret.arg[2] = tointeger(get_flag(line[i+1]))
         end
     end
     return ret

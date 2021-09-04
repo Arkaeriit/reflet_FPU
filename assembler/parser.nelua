@@ -13,7 +13,7 @@ require 'filestream'
 
 --constants
 local max_number_of_words <comptime> = 50 --The maximum number of words in an line. If there is more words, they will be ignored. More words means that theire is a more serious issur somewhere else
-local max_number_of_lines <comptime> = 4096 --The maximum number of lines in a file. TODO: Maybe use a linked list instead...
+local max_number_of_lines <comptime> = 4096 --The maximum number of lines in a file. TODO: Maybe use a linked list or vector instead...
 local comment_delimiter <comptime> = ";"
 
 ----------------------------------Data types------------------------------------
@@ -28,10 +28,14 @@ global pure_file = @record{
     content: [max_number_of_lines]pure_line
 }
 
---------------------------------Data pretyfiers---------------------------------
+----------------------------------Data access-----------------------------------
 
 function pure_line:__len()
     return self.len
+end
+
+function pure_line:__index(i: integer)
+    return self.content[i]
 end
 
 function pure_line:__tostring()
@@ -40,7 +44,7 @@ function pure_line:__tostring()
    builder:write(#self)
    builder:write("; {")
    for i=0,<#self do
-       builder:write(self.content[i])
+       builder:write(self[i])
        if i ~= #self - 1 then
            builder:write(", ")
        end
@@ -53,6 +57,10 @@ function pure_file:__len()
     return self.len
 end
 
+function pure_file:__index(i: integer)
+    return self.content[i]
+end
+
 function pure_file:__tostring()
    local builder: stringbuilder 
    builder:write("len = ")
@@ -60,7 +68,7 @@ function pure_file:__tostring()
    builder:write("\n")
    for i=0,<#self do
        builder:write("# ")
-       builder:write(self.content[i])
+       builder:write(self[i])
        builder:write("\n")
    end
    return builder:promote()
@@ -123,6 +131,26 @@ global function purify_file(file: filestream): pure_file
         str, _, OK = file:read("l")
     end
     file:close()
+    return ret
+end
+
+--Convert a string into a pure file
+--Split the string at each \n char
+global function purify_string(s: string): pure_file
+    local ret: pure_file
+    ret.len = 0
+    local line_start = 1
+    for i=1,#s do
+        if s:sub(i,i) == "\n" then
+            if i-1 >= line_start then
+                ret.content[#ret] = purify_line(s:sub(line_start, i-1))
+            else
+                ret.content[#ret] = purify_line("")
+            end
+            ret.len = #ret + 1
+            line_start = i + 1
+        end
+    end
     return ret
 end
 
