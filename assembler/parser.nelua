@@ -10,10 +10,10 @@
 require 'string'
 require 'stringbuilder'
 require 'filestream'
+require 'vector'
 
 --constants
 local max_number_of_words <comptime> = 50 --The maximum number of words in an line. If there is more words, they will be ignored. More words means that theire is a more serious issur somewhere else
-local max_number_of_lines <comptime> = 4096 --The maximum number of lines in a file. TODO: Maybe use a linked list or vector instead...
 local comment_delimiter <comptime> = ";"
 
 ----------------------------------Data types------------------------------------
@@ -24,8 +24,7 @@ global pure_line = @record{
 }
 
 global pure_file = @record{
-    len: integer,
-    content: [max_number_of_lines]pure_line
+    content: vector(pure_line)
 }
 
 ----------------------------------Data access-----------------------------------
@@ -54,7 +53,7 @@ function pure_line:__tostring()
 end
 
 function pure_file:__len()
-    return self.len
+    return #self.content
 end
 
 function pure_file:__index(i: integer)
@@ -72,6 +71,10 @@ function pure_file:__tostring()
        builder:write("\n")
    end
    return builder:promote()
+end
+
+function pure_file:push(line: pure_line)
+    self.content:push(line)
 end
 
 --------------------------------Private symbols---------------------------------
@@ -119,38 +122,29 @@ end
 
 -----------------------------------Public API-----------------------------------
 
---Convert an open file into a pure file
---Close the file after the opperation
-global function purify_file(file: filestream): pure_file
-    local ret: pure_file
-    ret.len = 0
-    local str, _, OK = file:read("l")
-    while OK == 0 do
-        ret.content[#ret] = purify_line(str)
-        ret.len = #ret + 1
-        str, _, OK = file:read("l")
-    end
-    file:close()
-    return ret
-end
-
 --Convert a string into a pure file
 --Split the string at each \n char
 global function purify_string(s: string): pure_file
     local ret: pure_file
-    ret.len = 0
     local line_start = 1
     for i=1,#s do
         if s:sub(i,i) == "\n" then
             if i-1 >= line_start then
-                ret.content[#ret] = purify_line(s:sub(line_start, i-1))
+                ret.content:push(purify_line(s:sub(line_start, i-1)))
             else
-                ret.content[#ret] = purify_line("")
+                ret.content:push(purify_line(""))
             end
-            ret.len = #ret + 1
             line_start = i + 1
         end
     end
     return ret
+end
+
+--Convert an open file into a pure file
+--Close the file after the opperation
+global function purify_file(file: filestream): pure_file
+    local s = file:read("a")
+    file:close()
+    return purify_string(s)
 end
 
