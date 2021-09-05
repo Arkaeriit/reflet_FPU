@@ -73,8 +73,22 @@ function pure_file:__tostring()
    return builder:promote()
 end
 
-function pure_file:push(line: pure_line)
+function pure_file:push_line(line: pure_line)
     self.content:push(line)
+end
+
+function pure_file:push_file(file: pure_file)
+    for i=0,<#file do
+        self:push_line(file[i])
+    end
+end
+
+function pure_file:sub(start: integer, stop: integer): pure_file
+    local ret: pure_file
+    for i=start,stop do
+        ret:push_line(self[i])
+    end
+    return ret
 end
 
 --------------------------------Private symbols---------------------------------
