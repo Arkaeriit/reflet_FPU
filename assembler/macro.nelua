@@ -41,7 +41,7 @@ local macro_list: vector(macro)
 local function check_arg_formed_OK(m: macro): boolean
     for i=0,<#m.content do
         local curr_line = m.content[i]
-        for j=0,#curr_line do
+        for j=0,<#curr_line do
             local curr_word = curr_line[j]
             if curr_word:sub(1,1) == "$" then --Note: we know for sure that curr_word is at least of length 1
                 if #curr_word == 1 then
@@ -61,12 +61,12 @@ end
 --It is assumed that all the argument acces are properly made
 local function check_arg_use_OK(m: macro): boolean
     local list_used_args: vector(boolean) --Keeping a record of all used arguments
-    for i=0,<#list_used_args do
+    for i=0,<m.number_of_args do
         list_used_args:push(false)
     end
     for i=0,<#m.content do
         local curr_line = m.content[i]
-        for j=0,#curr_line do
+        for j=0,<#curr_line do
             local curr_word = curr_line[j]
             if curr_word:sub(1,1) == "$" then --Note: we know for sure that curr_word is at least of length 1
                 local arg_num = tointeger(curr_word:sub(2,#curr_word))
@@ -82,7 +82,7 @@ local function check_arg_use_OK(m: macro): boolean
             return false
         end
     end
-    return false
+    return true
 end
 
 --Try to register a macro in the macro list. Runs check functions
@@ -112,5 +112,43 @@ end
 ----------------------------------Expending macros------------------------------
 
 --Try to expend a macro from a pure_line of assembly. Return the expended macro
---as a pure_file and also a beelean telling that the expension succeded.
---global function expend_macro(line: pure_line): (pure_file, boolean)
+--as a pure_file and also an error code
+global EXP_MACRO_ERR_OK = 0
+global EXP_MACRO_ERR_NOT_FOUND = 1
+global EXP_MACRO_ERR_NOT_INVALID_ARG = 2
+global function expend_macro(line: pure_line): (pure_file, integer)
+    local ret: pure_file
+    --Funding desired macro in list of registered macros
+    local target_macro: macro
+    local target_found = false
+    for i=0,<#macro_list do
+       if line[0] == macro_list[i].name then
+           target_found = true
+           target_macro = macro_list[i]
+           break
+       end
+    end
+    if not target_found then
+       return ret, EXP_MACRO_ERR_NOT_FOUND
+    end
+    --Check that all required arguments are given
+    if #line ~= target_macro.number_of_args + 1 then
+        return ret, EXP_MACRO_ERR_NOT_INVALID_ARG
+    end
+    --Generating the expended content, taking the content of the macro and replacing argument flags with the argument given in `line`
+    ret = target_macro.content:copy()
+    for i=0,<#ret do 
+        local curr_line = ret[i]
+        for j=0,<#curr_line do
+            local curr_word = curr_line[j]
+            if curr_word:sub(1,1) == "$" then --Note: we know for sure that curr_word is at least of length 1
+                local arg_num = tointeger(curr_word:sub(2,#curr_word))
+                print("Should swap") --TODO: delete
+                print(curr_word)
+                print(line[arg_num])
+                ret:word_swap(i, j, line[arg_num]) --Note: the fact that the flag for the first arg is $1 means that the indexing ends up well
+            end
+        end
+    end
+    return ret, EXP_MACRO_ERR_OK
+end

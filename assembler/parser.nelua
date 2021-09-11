@@ -91,6 +91,15 @@ function pure_file:sub(start: integer, stop: integer): pure_file
     return ret
 end
 
+function pure_file:copy(): pure_file --Could be optimize by using the vector copy function but at the time of writing this I do not have the documentation available
+    return self:sub(0,#self-1)
+end
+
+--Replace the jth word of the ith line with new_str
+function pure_file:word_swap(i: integer, j: integer, new_str: string)
+    --TODO: read the doc to do it
+end
+
 --------------------------------Private symbols---------------------------------
 
 --tells if a character is whitespace
@@ -150,6 +159,9 @@ global function purify_string(s: string): pure_file
             end
             line_start = i + 1
         end
+    end
+    if #s >= line_start then
+        ret.content:push(purify_line(s:sub(line_start, #s)))
     end
     return ret
 end

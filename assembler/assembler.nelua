@@ -1,0 +1,8 @@
+--[[--------------------------------------------
+|This file contains the main loop of the       |
+|assembling, reading a file, checking each     |
+|line and either assemble them and process     |
+|them like macro or other assembler directives.|
+----------------------------------------------]]
+
+
