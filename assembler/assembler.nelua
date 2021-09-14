@@ -5,4 +5,139 @@
 |them like macro or other assembler directives.|
 ----------------------------------------------]]
 
+--[[
+During assembly, the output is represented as a list of assembling blocs.
+An assembling block can either be:
+    - A pure_file of assembly language associted with name and a start line. The name and start line are used to display error messages that tell the line and the file where the error come from.
+    - A label being set or a reference to that label that needs to be computed.
+    - A special assembler directive such as an allignement constrain.
+    - An assembled instruction in machine code.
+    - A raw binary constant
+
+The first two steps of the compilation is to decode all pure_files in the list. The pure_files are processed line by line.
+
+In the first step, the @import directives are extended into new pure_files, the rest of the assembly code is packed into other pure_files. This steps is repeaded until there is no longuer any @import directives.
+
+The second step is to process other directives
+- @define ... @end directives are registred as macro.
+- Macro are expended into pure_files.
+- @label and @labref are registered
+- @allign are reregestered
+- @string and @rawbytes are registered as such
+This step is repeted until there is no longuer any pure_files in the list of blocs
+
+The third step is to replace all the blocs whose size are not known yet (allignement dirrectives) with blocks of padding whose size is known.
+
+As the fourth step, when the address of everythin can be known, a linking can be done by replacing @labref whith raw constants. Furthermore, @label can be checked to ensure that there is no duplicates.
+
+Lastly, the fifth step is to write the output binary file.
+
+]]
+
+require 'vector'
+require 'parser'
+require 'io'
+require 'filestream'
+
+----------------------------------Data types------------------------------------
+
+local error_t = @enum {
+    OK = 0,
+    file_read,
+    file_write
+}
+
+local block_types = @enum {
+    pure_file = 1,
+    machine_code,
+    allignement_directive,
+    padding,
+    rawbyte,
+    rawbytes,
+    label
+}
+
+local pure_file_block = @record {
+    content: pure_file,
+    name: string,
+    place: integer
+}
+
+local machine_code_block = @record {
+    code: uint16,
+    comment: string
+}
+
+local allignement_directive_block = @record {
+    byte_allignement: integer
+}
+
+local padding_block = @record {
+    number_of_bytes: integer
+}
+
+local rawbyte_block = @record {
+    content: byte
+}
+
+local rawbytes_block = @record {
+    content: vector(byte)
+}
+
+local label_block = @record {
+    id: string,
+    set: boolean
+}
+
+local block_union = @union {
+    pure_file: pure_file_block,
+    machine_code: machine_code_block,
+    allignement_directive: allignement_directive_block,
+    padding: padding_block,
+    rawbyte: rawbyte_block,
+    rawbytes: rawbytes_block,
+    label: label_block
+}
+
+local block = @record {
+    type: block_types,
+    content: block_union
+}
+
+local function insert_block_in_file(in_block: vector(block), file_index: integer, line: integer, new_block: block): vector(block)
+    local ret: vector(block)
+    for i=0,<file_index do
+        ret:push(in_block[i])
+    end
+    if #in_block[file_index].content.pure_file.content == 1 then
+        ret:push(new_block)
+    else
+        local start_file = in_block[file_index].content.pure_file.content:sub(0,line-1)
+        local end_file = in_block[file_index].content.pure_file.content:sub(line+1,#in_block[file_index].content.pure_file.content)
+        local start_block = {start_file, in_block[file_index].content.pure_file.name, in_block[file_index].content.pure_file.place}
+        local end_block = {end_file, in_block[file_index].content.pure_file.name, in_block[file_index].content.pure_file.place+line+1}
+        ret:push({})
+        --TODO
+    end
+    for i=file_index+1,<#in_block do
+        ret:push(in_block[i])
+    end
+    return ret
+end
+
+----------------------------------First step------------------------------------
+
+--Open a file as a pure_file_block
+local function open_file_block(filename: string): (pure_file_block, error_t)
+    local ret: pure_file_block
+    local f, err = io.open(filename, "r")
+    if err then
+        return ret, error_t.file_read
+    end
+    ret.content = purify_file(f)
+    ret.name = filename
+    ret.place = 1
+    return ret, error_t.OK
+end
+
 
