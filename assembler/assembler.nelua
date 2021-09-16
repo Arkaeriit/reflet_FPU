@@ -44,7 +44,8 @@ require 'filestream'
 local error_t = @enum {
     OK = 0,
     file_read,
-    file_write
+    file_write,
+    arguments
 }
 
 local block_types = @enum {
@@ -140,4 +141,36 @@ local function open_file_block(filename: string): (pure_file_block, error_t)
     return ret, error_t.OK
 end
 
+--Do the substiturion in each pure_files
+local function first_step(in_block: vector(block)) : (vector(block), error_t)
+    local ret = in_block:copy()
+    local made_substitutions = false
+    for i=0,<#in_block do
+        if in_block[i].type == block_types.pure_file then
+            local file = in_block[i].content.pure_file.content
+            for j=0,<#file do
+                local line = file[j]
+                if line[0] == "@import" then
+                    if #line ~= 2 then
+                        return ret, error_t.arguments
+                    end
+                    local imported_file, err = open_file_block(line[1])
+                    if err then
+                        return ret, err
+                    end
+                    local imported_block: block
+                    imported_block.type = block_types.pure_file
+                    imported_block.content.pure_file = imported_file
+                    ret = insert_block_in_file(ret, i, j, imported_block)
+                    made_substitutions = true
+                end
+            end
+        end
+    end
+    if made_substitutions then
+        return first_step(in_block)
+    else
+        return ret, error_t.OK
+    end
+end
 
