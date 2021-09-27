@@ -3,6 +3,7 @@ require 'io'
 require 'assemble_line'
 require 'parser'
 require 'macro'
+require 'assembler'
 
 --Testing assembly
 local f = io.open("test.asm", "r")
@@ -34,4 +35,8 @@ local call_line = call_pure[0]
 local call_exp, err_code = expend_macro(call_line)
 print(err_code)
 print(call_exp)
+
+--testing includes
+including_test()
+
 

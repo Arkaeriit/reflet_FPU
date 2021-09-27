@@ -34,10 +34,11 @@ Lastly, the fifth step is to write the output binary file.
 
 ]]
 
+require 'io'
 require 'vector'
 require 'parser'
-require 'io'
 require 'filestream'
+require 'stringbuilder'
 
 ----------------------------------Data types------------------------------------
 
@@ -105,24 +106,70 @@ local block = @record {
     content: block_union
 }
 
+function block:__tostring()
+    local builder: stringbuilder
+    if self.type == block_types.pure_file then
+        builder:write("Type = pure_file\nFilename = ")
+        builder:write(self.content.pure_file.name)
+        builder:write(" ; place = ")
+        builder:write(self.content.pure_file.place)
+        builder:write(" ; content = [")
+        builder:write(self.content.pure_file.content)
+        builder:write("]\n")
+    else
+        builder:write("Unsuported type: ")
+        builder:write(self.type)
+        builder:write("\n")
+    end
+    return builder:promote()
+end
+
+local function stringify_blocks(in_block: vector(block)): string
+    local builder: stringbuilder
+    for i=0,<#in_block do
+        builder:write("Element ")
+        builder:write(i)
+        builder:write(" ;")
+        builder:write(in_block[i])
+    end
+    return builder:promote()
+end
+
+local function make_pure_file_block(in_block: pure_file_block): block
+    local ret: block
+    ret.type = block_types.pure_file
+    ret.content.pure_file = in_block
+    return ret
+end
+
 local function insert_block_in_file(in_block: vector(block), file_index: integer, line: integer, new_block: block): vector(block)
+    print(stringify_blocks(in_block))
     local ret: vector(block)
     for i=0,<file_index do
         ret:push(in_block[i])
     end
+    print("eee", file_index)
     if #in_block[file_index].content.pure_file.content == 1 then
         ret:push(new_block)
     else
+        print("abc")
         local start_file = in_block[file_index].content.pure_file.content:sub(0,line-1)
-        local end_file = in_block[file_index].content.pure_file.content:sub(line+1,#in_block[file_index].content.pure_file.content)
-        local start_block = {start_file, in_block[file_index].content.pure_file.name, in_block[file_index].content.pure_file.place}
-        local end_block = {end_file, in_block[file_index].content.pure_file.name, in_block[file_index].content.pure_file.place+line+1}
-        ret:push({})
-        --TODO
+        print("def")
+        local end_file = in_block[file_index].content.pure_file.content:sub(line+1,#in_block[file_index].content.pure_file.content - 1)
+        print("ghi")
+        local start_block: pure_file_block = {start_file, in_block[file_index].content.pure_file.name, in_block[file_index].content.pure_file.place}
+        print("jkl")
+        local end_block: pure_file_block = {end_file, in_block[file_index].content.pure_file.name, in_block[file_index].content.pure_file.place+line+1}
+        print("mno")
+        ret:push(make_pure_file_block(start_block))
+        ret:push(new_block)
+        ret:push(make_pure_file_block(end_block))
     end
+    print("fff")
     for i=file_index+1,<#in_block do
         ret:push(in_block[i])
     end
+    print("ggg")
     return ret
 end
 
@@ -131,8 +178,8 @@ end
 --Open a file as a pure_file_block
 local function open_file_block(filename: string): (pure_file_block, error_t)
     local ret: pure_file_block
-    local f, err = io.open(filename, "r")
-    if err then
+    local f, msg, err = io.open(filename, "r")
+    if err ~= 0 then
         return ret, error_t.file_read
     end
     ret.content = purify_file(f)
@@ -142,7 +189,7 @@ local function open_file_block(filename: string): (pure_file_block, error_t)
 end
 
 --Do the substiturion in each pure_files
-local function first_step(in_block: vector(block)) : (vector(block), error_t)
+local function first_step(in_block: vector(block)) : (vector(block), error_t) --TODO: remove global
     local ret = in_block:copy()
     local made_substitutions = false
     for i=0,<#in_block do
@@ -151,26 +198,38 @@ local function first_step(in_block: vector(block)) : (vector(block), error_t)
             for j=0,<#file do
                 local line = file[j]
                 if line[0] == "@import" then
+                    print("Doing it")
                     if #line ~= 2 then
+                        io.stderr:write("Error, invalid number of arguments for an import directive.\n")
                         return ret, error_t.arguments
                     end
                     local imported_file, err = open_file_block(line[1])
-                    if err then
+                    if err ~= error_t.OK then
+                        io.stderr:write("Error, unable to open ", line[1], ".\n")
                         return ret, err
                     end
-                    local imported_block: block
-                    imported_block.type = block_types.pure_file
-                    imported_block.content.pure_file = imported_file
-                    ret = insert_block_in_file(ret, i, j, imported_block)
+                    print("ii")
+                    ret = insert_block_in_file(ret, i, j, make_pure_file_block(imported_file))
+                    print("ii")
                     made_substitutions = true
                 end
             end
         end
     end
     if made_substitutions then
-        return first_step(in_block)
+        return first_step(ret)
     else
         return ret, error_t.OK
     end
+end
+
+global function including_test()
+    local including_file, err = open_file_block("test_inc.asm")
+    print(err)
+    local mini_vector : vector(block)
+    mini_vector:push(make_pure_file_block(including_file))
+    print(stringify_blocks(mini_vector))
+    local new_vector = first_step(mini_vector)
+    print(stringify_blocks(new_vector))
 end
 

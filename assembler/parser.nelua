@@ -96,8 +96,13 @@ function pure_file:copy(): pure_file --Could be optimize by using the vector cop
 end
 
 --Replace the jth word of the ith line with new_str
-function pure_file:word_swap(i: integer, j: integer, new_str: string)
-    --TODO: read the doc to do it
+function pure_file:word_swap(i: integer, j: integer, new_str: string)--: pure_file
+    local ret = self:sub(0, i-1)
+    local interesting_line = self[i]
+    interesting_line.content[j] = new_str
+    ret:push_line(interesting_line)
+    ret:push_file(self:sub(i+1,#self-1))
+    return ret
 end
 
 --------------------------------Private symbols---------------------------------
