@@ -16,7 +16,7 @@ require 'vector'
 local max_number_of_words <comptime> = 50 --The maximum number of words in an line. If there is more words, they will be ignored. More words means that theire is a more serious issur somewhere else
 local comment_delimiter <comptime> = ";"
 
-----------------------------------Data types------------------------------------
+----------------------------------- Data types ---------------------------------
 
 global pure_line = @record{
     len: integer,
@@ -27,7 +27,7 @@ global pure_file = @record{
     content: vector(pure_line)
 }
 
-----------------------------------Data access-----------------------------------
+----------------------------------- Data access --------------------------------
 
 function pure_line:__len()
     return self.len
@@ -107,7 +107,7 @@ function pure_file:word_swap(i: integer, j: integer, new_str: string)--: pure_fi
     return ret
 end
 
---------------------------------Private symbols---------------------------------
+--------------------------------- Private symbols ------------------------------
 
 --tells if a character is whitespace
 local function is_whitespace(s: string): boolean
@@ -150,7 +150,7 @@ local function purify_line(s: string): pure_line
     return ret
 end
 
------------------------------------Public API-----------------------------------
+----------------------------------- Public API ---------------------------------
 
 --Convert a string into a pure file
 --Split the string at each \n char

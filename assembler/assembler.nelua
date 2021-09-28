@@ -40,7 +40,7 @@ require 'parser'
 require 'filestream'
 require 'stringbuilder'
 
-----------------------------------Data types------------------------------------
+----------------------------------- Data types ---------------------------------
 
 local error_t = @enum {
     OK = 0,
@@ -164,7 +164,7 @@ local function insert_block_in_file(in_block: vector(block), file_index: integer
     return ret
 end
 
-----------------------------------First step------------------------------------
+----------------------------------- First step ---------------------------------
 
 --Open a file as a pure_file_block
 local function open_file_block(filename: string): (pure_file_block, error_t)

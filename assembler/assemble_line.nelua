@@ -9,7 +9,8 @@ require 'stringbuilder'
 require 'io'
 require 'parser'
 
--------------------------------Constants definitions----------------------------
+------------------------------ Constants definitions ---------------------------
+
 local args_choice = @enum {
     void = 0,
     flag,
@@ -64,7 +65,7 @@ local instruction_list: []instruction <const> = {
     {"RET",       {args_choice.void, args_choice.void, args_choice.void}, 0x07, false},
 }
 
---------------------------------Private symbols---------------------------------
+--------------------------------- Private symbols ------------------------------
 
 --Tells if a mnemonic correspond to a valid instruction
 local function is_mnemonic_valid(mnemonic: string): boolean 
@@ -248,7 +249,7 @@ local function post_assemble(inst: extended_instruction): uint16
     return ret
 end
 
------------------------------------Public API-----------------------------------
+----------------------------------- Public API ---------------------------------
 
 --This function takes a pure_line of assembler as argument and assemble it
 --The first return value is the raw machine code. The second is an error code

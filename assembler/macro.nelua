@@ -23,7 +23,7 @@ require 'vector'
 require 'io'
 require 'parser'
 
-----------------------------------Data types------------------------------------
+----------------------------------- Data types ---------------------------------
 
 global macro = @record {
     name: string,
@@ -34,7 +34,7 @@ global macro = @record {
 --A list of all the usable macros
 local macro_list: vector(macro)
 
-------------------------------Registering macros--------------------------------
+------------------------------- Registering macros -----------------------------
 
 --Check that all the arguments in a macro are well formed. For exemple,
 --there is no $abcd
@@ -109,7 +109,7 @@ global function register_macro(name: string, number_of_args: integer, content: p
     return ret
 end
 
-----------------------------------Expending macros------------------------------
+-------------------------------- Expending macros ------------------------------
 
 --Try to expend a macro from a pure_line of assembly. Return the expended macro
 --as a pure_file and also an error code
