@@ -143,33 +143,24 @@ local function make_pure_file_block(in_block: pure_file_block): block
 end
 
 local function insert_block_in_file(in_block: vector(block), file_index: integer, line: integer, new_block: block): vector(block)
-    print(stringify_blocks(in_block))
     local ret: vector(block)
     for i=0,<file_index do
         ret:push(in_block[i])
     end
-    print("eee", file_index)
     if #in_block[file_index].content.pure_file.content == 1 then
         ret:push(new_block)
     else
-        print("abc")
         local start_file = in_block[file_index].content.pure_file.content:sub(0,line-1)
-        print("def")
         local end_file = in_block[file_index].content.pure_file.content:sub(line+1,#in_block[file_index].content.pure_file.content - 1)
-        print("ghi")
         local start_block: pure_file_block = {start_file, in_block[file_index].content.pure_file.name, in_block[file_index].content.pure_file.place}
-        print("jkl")
         local end_block: pure_file_block = {end_file, in_block[file_index].content.pure_file.name, in_block[file_index].content.pure_file.place+line+1}
-        print("mno")
         ret:push(make_pure_file_block(start_block))
         ret:push(new_block)
         ret:push(make_pure_file_block(end_block))
     end
-    print("fff")
     for i=file_index+1,<#in_block do
         ret:push(in_block[i])
     end
-    print("ggg")
     return ret
 end
 
@@ -191,14 +182,12 @@ end
 --Do the substiturion in each pure_files
 local function first_step(in_block: vector(block)) : (vector(block), error_t) --TODO: remove global
     local ret = in_block:copy()
-    local made_substitutions = false
     for i=0,<#in_block do
         if in_block[i].type == block_types.pure_file then
             local file = in_block[i].content.pure_file.content
             for j=0,<#file do
                 local line = file[j]
                 if line[0] == "@import" then
-                    print("Doing it")
                     if #line ~= 2 then
                         io.stderr:write("Error, invalid number of arguments for an import directive.\n")
                         return ret, error_t.arguments
@@ -208,19 +197,14 @@ local function first_step(in_block: vector(block)) : (vector(block), error_t) --
                         io.stderr:write("Error, unable to open ", line[1], ".\n")
                         return ret, err
                     end
-                    print("ii")
                     ret = insert_block_in_file(ret, i, j, make_pure_file_block(imported_file))
-                    print("ii")
-                    made_substitutions = true
+                    local ret_block, ret_err = first_step(ret)
+                    return ret_block, ret_err
                 end
             end
         end
     end
-    if made_substitutions then
-        return first_step(ret)
-    else
-        return ret, error_t.OK
-    end
+    return ret, error_t.OK
 end
 
 global function including_test()

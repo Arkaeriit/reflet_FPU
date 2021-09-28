@@ -85,8 +85,10 @@ end
 
 function pure_file:sub(start: integer, stop: integer): pure_file
     local ret: pure_file
-    for i=start,stop do
-        ret:push_line(self[i])
+    if stop >= start then -- This comparaison weeds out invalid subs
+        for i=start,stop do
+            ret:push_line(self[i])
+        end
     end
     return ret
 end
