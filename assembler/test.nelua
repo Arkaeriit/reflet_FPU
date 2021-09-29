@@ -6,7 +6,7 @@ require 'macro'
 require 'assembler'
 
 --Testing assembly
-local f = io.open("test.asm", "r")
+local f = io.open("./raw_instructions.asm", "r")
 local pure = purify_file(f)
 print(pure)
 for i=0,<#pure do
@@ -37,6 +37,5 @@ print(err_code)
 print(call_exp)
 
 --testing includes
-including_test()
-
+asm_test()
 

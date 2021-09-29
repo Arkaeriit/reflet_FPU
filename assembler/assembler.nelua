@@ -117,6 +117,16 @@ function block:__tostring()
         builder:write(" ; content = [")
         builder:write(self.content.pure_file.content)
         builder:write("]\n")
+    elseif self.type == block_types.label then
+        builder:write("Type = label; ID = ")
+        builder:write(self.content.label.id)
+        builder:write(" ; set ? ")
+        builder:write(self.content.label.set)
+        builder:write("\n")
+    elseif self.type == block_types.alignement_directive then
+        builder:write("Type = Alignement directive; align to ")
+        builder:write(self.content.alignement_directive.byte_alignement)
+        builder:write("bytes\n")
     else
         builder:write("Unsupported type: ")
         builder:write(self.type)
@@ -215,17 +225,6 @@ local function first_step(in_block: vector(block)) : (vector(block), error_t)
     return ret, error_t.OK
 end
 
--- To delete in final product
-global function including_test()
-    local including_file, err = open_file_block("test_inc.asm")
-    print(err)
-    local mini_vector : vector(block)
-    mini_vector:push(make_pure_file_block(including_file))
-    print(stringify_blocks(mini_vector))
-    local new_vector = first_step(mini_vector)
-    print(stringify_blocks(new_vector))
-end
-
 ----------------------------------- Second step --------------------------------
 
 -- Remove directives in pure files
@@ -301,3 +300,15 @@ local function second_step(in_block: vector(block)) : (vector(block), error_t)
     return ret, error_t.OK
 end
 
+-- To delete in final product
+global function asm_test()
+    local including_file, err = open_file_block("./dirrectives.asm")
+    print(err)
+    local mini_vector : vector(block)
+    mini_vector:push(make_pure_file_block(including_file))
+    print(stringify_blocks(mini_vector))
+    local step1_vector = first_step(mini_vector)
+    print(stringify_blocks(step1_vector))
+    local step2_vector = second_step(step1_vector)
+    print(stringify_blocks(step2_vector))
+end
