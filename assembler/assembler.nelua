@@ -28,7 +28,7 @@ This step is repeated until there is no longer any pure_files in the list of blo
 
 The third step is to replace blocks of variable size such as pure_file and rawbytes into blocks of known size such as machine_code and rawbyte blocks.
 
-The fourth step is to replace all the blocs whose size are not known yet (alignment directives) with blocks of padding whose size is known.
+The fourth step is to replace all the blocs whose size are not known yet (alignment directives) with blocks of padding whose size is known. Furthermore, machine code blocks are replaced with two rawbyte blocks.
 
 As the fifth step, when the address of everything can be known, a linking can be done by replacing @labref with raw constants. Furthermore, @label can be checked to ensure that there is no duplicates.
 
@@ -61,13 +61,13 @@ local error_t = @enum {
     file_write,
     arguments,
     instruction,
+    type,
 }
 
 local block_types = @enum {
     pure_file = 1,
     machine_code,
     alignment_directive,
-    padding,
     rawbyte,
     rawbytes,
     label
@@ -88,10 +88,6 @@ local alignment_directive_block = @record {
     byte_alignment: integer
 }
 
-local padding_block = @record {
-    number_of_bytes: integer
-}
-
 local rawbyte_block = @record {
     content: byte
 }
@@ -109,7 +105,6 @@ local block_union = @union {
     pure_file: pure_file_block,
     machine_code: machine_code_block,
     alignment_directive: alignment_directive_block,
-    padding: padding_block,
     rawbyte: rawbyte_block,
     rawbytes: rawbytes_block,
     label: label_block
@@ -201,6 +196,17 @@ local function insert_block(in_block: vector(block), i: integer, new: block)
     return ret
 end
 
+-- Replace the block at index i in the vector with the new block
+local function insert_block(in_block: vector(block), i: integer, new: block)
+    local ret: vector(block)
+    for j=0,<#in_block do
+        if j == i then
+            ret:push(new)
+        end
+        ret:push(in_block[j])
+    end
+    return ret
+end
 -- Replace a line in a file with a whole block
 -- Useful to replace a directive with its effects
 local function insert_block_in_file(in_block: vector(block), file_index: integer, line: integer, new_block: block): vector(block)
@@ -399,6 +405,36 @@ local function third_step(in_block: vector(block)) : (vector(block), error_t)
     return ret, error_t.OK
 end
 
+----------------------------------- Fourth step --------------------------------
+
+local function fourth_step(in_block: vector(block)) : (vector(block), error_t)
+    local ret: vector(block)
+    for i=0,<#in_block do
+        if in_block[i].type == block_types.label or in_block[i].type == block_types.rawbyte then
+            ret:push(in_block[i])
+        elseif in_block[i].type == block_types.machine_code then
+            local new_block: block
+            new_block.type = block_types.rawbyte
+            new_block.content.rawbyte = {in_block[i].content.machine_code.code & 0xFF} --Note: little endian
+            ret:push(new_block)
+            new_block.content.rawbyte = {(in_block[i].content.machine_code.code >> 8) & 0xFF}
+            ret:push(new_block)
+        elseif in_block[i].type == block_types.alignment_directive then
+            local new_block: block
+            new_block.type = block_types.rawbyte
+            new_block.content.rawbyte = {0}
+            while #ret % in_block[i].content.alignment_directive.byte_alignment ~= 0 do
+                ret:push(new_block)
+            end
+        else
+            io.stderr:write("Error, unexpected type (", in_block[i].type, ") in fourth step.\n")
+            return ret, error_t.type
+        end
+    end
+    return ret, error_t.OK
+end
+
+-------------------------------------- Test ------------------------------------
 
 -- To delete in final product
 global function asm_test()
@@ -413,4 +449,6 @@ global function asm_test()
     print(stringify_blocks(step2_vector))
     local step3_vector = third_step(step2_vector)
     print(stringify_blocks(step3_vector))
+    local step4_vector = fourth_step(step3_vector)
+    print(stringify_blocks(step4_vector))
 end
