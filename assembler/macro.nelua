@@ -149,3 +149,15 @@ global function expend_macro(line: pure_line): (pure_file, integer)
     end
     return ret, EXP_MACRO_ERR_OK
 end
+
+-- This funtions return true if the argument 'name' is the name
+-- of a macro
+global function is_macro(name: string): boolean
+    for i=0,<#macro_list do
+        if macro_list[i].name == name then
+            return true
+        end
+    end
+    return false
+end
+

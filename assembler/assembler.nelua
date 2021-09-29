@@ -10,31 +10,32 @@ During assembly, the output is represented as a list of assembling blocs.
 An assembling block can either be:
     - A pure_file of assembly language associted with name and a start line. The name and start line are used to display error messages that tell the line and the file where the error come from.
     - A label being set or a reference to that label that needs to be computed.
-    - A special assembler directive such as an allignement constrain.
+    - A special assembler directive such as an alignement constrain.
     - An assembled instruction in machine code.
     - A raw binary constant
 
 The first two steps of the compilation is to decode all pure_files in the list. The pure_files are processed line by line.
 
-In the first step, the @import directives are extended into new pure_files, the rest of the assembly code is packed into other pure_files. This steps is repeaded until there is no longuer any @import directives.
+In the first step, the @import directives are extended into new pure_files, the rest of the assembly code is packed into other pure_files. This steps is repeated until there is no longer any @import directives.
 
 The second step is to process other directives
 - @define ... @end directives are registred as macro.
 - Macro are expended into pure_files.
 - @label and @labref are registered
-- @allign are reregestered
-- @string and @rawbytes are registered as such
-This step is repeted until there is no longuer any pure_files in the list of blocs
+- @align are registered
+- @constant and @rawbytes are registered as such
+This step is repeted until there is no longer any pure_files in the list of blocs
 
-The third step is to replace all the blocs whose size are not known yet (allignement dirrectives) with blocks of padding whose size is known.
+The third step is to replace all the blocs whose size are not known yet (alignement dirrectives) with blocks of padding whose size is known.
 
-As the fourth step, when the address of everythin can be known, a linking can be done by replacing @labref whith raw constants. Furthermore, @label can be checked to ensure that there is no duplicates.
+As the fourth step, when the address of everything can be known, a linking can be done by replacing @labref with raw constants. Furthermore, @label can be checked to ensure that there is no duplicates.
 
 Lastly, the fifth step is to write the output binary file.
 
 ]]
 
 require 'io'
+require 'macro'
 require 'vector'
 require 'parser'
 require 'filestream'
@@ -52,7 +53,7 @@ local error_t = @enum {
 local block_types = @enum {
     pure_file = 1,
     machine_code,
-    allignement_directive,
+    alignement_directive,
     padding,
     rawbyte,
     rawbytes,
@@ -70,8 +71,8 @@ local machine_code_block = @record {
     comment: string
 }
 
-local allignement_directive_block = @record {
-    byte_allignement: integer
+local alignement_directive_block = @record {
+    byte_alignement: integer
 }
 
 local padding_block = @record {
@@ -94,7 +95,7 @@ local label_block = @record {
 local block_union = @union {
     pure_file: pure_file_block,
     machine_code: machine_code_block,
-    allignement_directive: allignement_directive_block,
+    alignement_directive: alignement_directive_block,
     padding: padding_block,
     rawbyte: rawbyte_block,
     rawbytes: rawbytes_block,
@@ -117,13 +118,14 @@ function block:__tostring()
         builder:write(self.content.pure_file.content)
         builder:write("]\n")
     else
-        builder:write("Unsuported type: ")
+        builder:write("Unsupported type: ")
         builder:write(self.type)
         builder:write("\n")
     end
     return builder:promote()
 end
 
+-- Used to pretty print vectors of blocks
 local function stringify_blocks(in_block: vector(block)): string
     local builder: stringbuilder
     for i=0,<#in_block do
@@ -135,6 +137,7 @@ local function stringify_blocks(in_block: vector(block)): string
     return builder:promote()
 end
 
+-- From a pure file block, do the work to make a proper block
 local function make_pure_file_block(in_block: pure_file_block): block
     local ret: block
     ret.type = block_types.pure_file
@@ -142,6 +145,8 @@ local function make_pure_file_block(in_block: pure_file_block): block
     return ret
 end
 
+-- Replace a line in a file with a whole block
+-- Useful to replace a directive with its effects
 local function insert_block_in_file(in_block: vector(block), file_index: integer, line: integer, new_block: block): vector(block)
     local ret: vector(block)
     for i=0,<file_index do
@@ -179,14 +184,17 @@ local function open_file_block(filename: string): (pure_file_block, error_t)
     return ret, error_t.OK
 end
 
---Do the substiturion in each pure_files
-local function first_step(in_block: vector(block)) : (vector(block), error_t) --TODO: remove global
+--Do the substitution in each pure_files
+local function first_step(in_block: vector(block)) : (vector(block), error_t)
     local ret = in_block:copy()
     for i=0,<#in_block do
         if in_block[i].type == block_types.pure_file then
             local file = in_block[i].content.pure_file.content
             for j=0,<#file do
                 local line = file[j]
+                if #line == 0 then
+                    continue
+                end
                 if line[0] == "@import" then
                     if #line ~= 2 then
                         io.stderr:write("Error, invalid number of arguments for an import directive.\n")
@@ -207,6 +215,7 @@ local function first_step(in_block: vector(block)) : (vector(block), error_t) --
     return ret, error_t.OK
 end
 
+-- To delete in final product
 global function including_test()
     local including_file, err = open_file_block("test_inc.asm")
     print(err)
@@ -215,5 +224,80 @@ global function including_test()
     print(stringify_blocks(mini_vector))
     local new_vector = first_step(mini_vector)
     print(stringify_blocks(new_vector))
+end
+
+----------------------------------- Second step --------------------------------
+
+-- Remove directives in pure files
+local function second_step(in_block: vector(block)) : (vector(block), error_t)
+    local ret = in_block:copy()
+    for i=0,<#in_block do
+        if in_block[i].type == block_types.pure_file then
+            local file = in_block[i].content.pure_file.content
+            for j=0,<#file do
+                local line = file[j]
+                if #line == 0 then
+                    continue
+                end
+                if line[0] == "@define" then --TODO: hard one
+                elseif is_macro(line[0]) then --TODO
+                elseif line[0] == "@label" then
+                    if #line ~= 2 then
+                        io.stderr:write("Error, invalid number of arguments for a label directive.\n")
+                        return ret, error_t.arguments
+                    end
+                    local lab_blk: label_block = {line[1], true}
+                    local new_block: block
+                    new_block.type = block_types.label
+                    new_block.content.label = lab_blk
+                    ret = insert_block_in_file(ret, i, j, new_block)
+                    local ret_block, ret_err = second_step(ret)
+                    return ret_block, ret_err
+                elseif line[0] == "@labref" then
+                    if #line ~= 2 then
+                        io.stderr:write("Error, invalid number of arguments for a labref directive.\n")
+                        return ret, error_t.arguments
+                    end
+                    local lab_blk: label_block = {line[1], false}
+                    local new_block: block
+                    new_block.type = block_types.label
+                    new_block.content.label = lab_blk
+                    ret = insert_block_in_file(ret, i, j, new_block)
+                    local ret_block, ret_err = second_step(ret)
+                    return ret_block, ret_err
+                elseif line[0] == "@align" then
+                    if #line ~= 2 then
+                        io.stderr:write("Error, invalid number of arguments for a align directive.\n")
+                        return ret, error_t.arguments
+                    end
+                    local lab_blk: alignement_directive_block  = {tointeger(line[1])}
+                    local new_block: block
+                    new_block.type = block_types.alignement_directive
+                    new_block.content.alignement_directive = lab_blk
+                    ret = insert_block_in_file(ret, i, j, new_block)
+                    local ret_block, ret_err = second_step(ret)
+                    return ret_block, ret_err
+                elseif line[0] == "@constant" then --TODO: find way to manipulate floats
+                elseif line[0] == "@rawbytes" then
+                    if #line < 2 then
+                        io.stderr:write("Error, invalid number of arguments for a rawbytes directive.\n")
+                        return ret, error_t.arguments
+                    end
+                    local raws: vector(byte)
+                    for i=1,<#line do
+                        raws:push(tointeger(line[i], 16))
+                    end
+                    local lab_blk: rawbytes_block  = {raws}
+                    local new_block: block
+                    new_block.type = block_types.rawbytes
+                    new_block.content.rawbytes = lab_blk
+                    ret = insert_block_in_file(ret, i, j, new_block)
+                    local ret_block, ret_err = second_step(ret)
+                    return ret_block, ret_err
+                end
+            end
+        end
+    end
+    return ret, error_t.OK
 end
 
