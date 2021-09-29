@@ -26,17 +26,29 @@ The second step is to process other directives
 - @constant and @rawbytes are registered as such
 This step is repeated until there is no longer any pure_files in the list of blocs
 
-The third step is to replace all the blocs whose size are not known yet (alignment directives) with blocks of padding whose size is known.
+The third step is to replace blocks of variable size such as pure_file and rawbytes into blocks of known size such as machine_code and rawbyte blocks.
 
-As the fourth step, when the address of everything can be known, a linking can be done by replacing @labref with raw constants. Furthermore, @label can be checked to ensure that there is no duplicates.
+The fourth step is to replace all the blocs whose size are not known yet (alignment directives) with blocks of padding whose size is known.
+
+As the fifth step, when the address of everything can be known, a linking can be done by replacing @labref with raw constants. Furthermore, @label can be checked to ensure that there is no duplicates.
 
 Lastly, the fifth step is to write the output binary file.
+
+]]
+
+--[[ TODO
+
+- when error encountered in file blocks should tell in which file and
+at which line the error happened.
+- step 4
+- step 5
 
 ]]
 
 require 'io'
 require 'macro'
 require 'vector'
+require 'string'
 require 'parser'
 require 'filestream'
 require 'stringbuilder'
@@ -47,7 +59,8 @@ local error_t = @enum {
     OK = 0,
     file_read,
     file_write,
-    arguments
+    arguments,
+    instruction,
 }
 
 local block_types = @enum {
@@ -110,7 +123,7 @@ local block = @record {
 function block:__tostring()
     local builder: stringbuilder
     if self.type == block_types.pure_file then
-        builder:write("Type = pure_file\nFilename = ")
+        builder:write("Type = Pure File\nFilename = ")
         builder:write(self.content.pure_file.name)
         builder:write(" ; place = ")
         builder:write(self.content.pure_file.place)
@@ -118,15 +131,25 @@ function block:__tostring()
         builder:write(self.content.pure_file.content)
         builder:write("]\n")
     elseif self.type == block_types.label then
-        builder:write("Type = label; ID = ")
+        builder:write("Type = Label; ID = ")
         builder:write(self.content.label.id)
         builder:write(" ; set ? ")
         builder:write(self.content.label.set)
         builder:write("\n")
+    elseif self.type == block_types.machine_code then
+        builder:write("Type = Machine Code; code = ")
+        builder:write(self.content.machine_code.code)
+        builder:write(" ; detail: ")
+        builder:write(self.content.machine_code.comment)
+        builder:write("\n")
     elseif self.type == block_types.alignment_directive then
-        builder:write("Type = Alignment directive; align to ")
+        builder:write("Type = Alignment Directive; align to ")
         builder:write(self.content.alignment_directive.byte_alignment)
         builder:write("bytes\n")
+    elseif self.type == block_types.rawbyte then
+        builder:write("Type = Raw Byte; value = ")
+        builder:write(string.format("0x%02X", self.content.rawbyte.content))
+        builder:write("\n")
     else
         builder:write("Unsupported type: ")
         builder:write(self.type)
@@ -140,7 +163,7 @@ local function stringify_blocks(in_block: vector(block)): string
     local builder: stringbuilder
     for i=0,<#in_block do
         builder:write("Element ")
-        builder:write(i)
+        builder:write(string.format("%06i", i))
         builder:write(" ;")
         builder:write(in_block[i])
     end
@@ -152,6 +175,29 @@ local function make_pure_file_block(in_block: pure_file_block): block
     local ret: block
     ret.type = block_types.pure_file
     ret.content.pure_file = in_block
+    return ret
+end
+
+-- Delete the i-th block in a vector
+local function delete_block(in_block: vector(block), i: integer)
+    local ret: vector(block)
+    for j=0,<#in_block do
+        if j ~= i then
+            ret:push(in_block[j])
+        end
+    end
+    return ret
+end
+
+-- Add the new block at index i in the vector
+local function insert_block(in_block: vector(block), i: integer, new: block)
+    local ret: vector(block)
+    for j=0,<#in_block do
+        if j == i then
+            ret:push(new)
+        end
+        ret:push(in_block[j])
+    end
     return ret
 end
 
@@ -228,11 +274,12 @@ end
 ----------------------------------- Second step --------------------------------
 
 -- Remove directives in pure files
+-- TODO: maybe clean up code with meta-programming
 local function second_step(in_block: vector(block)) : (vector(block), error_t)
     local ret = in_block:copy()
-    for i=0,<#in_block do
-        if in_block[i].type == block_types.pure_file then
-            local file = in_block[i].content.pure_file.content
+    for i=0,<#ret do
+        if ret[i].type == block_types.pure_file then
+            local file = ret[i].content.pure_file.content
             for j=0,<#file do
                 local line = file[j]
                 if #line == 0 then
@@ -300,6 +347,59 @@ local function second_step(in_block: vector(block)) : (vector(block), error_t)
     return ret, error_t.OK
 end
 
+----------------------------------- Third step ---------------------------------
+
+-- Replace fancy blocks with their simpler version
+local function third_step(in_block: vector(block)) : (vector(block), error_t)
+    local ret = in_block:copy()
+    for i=0,<#in_block do
+        if ret[i].type == block_types.pure_file then
+            local file = ret[i].content.pure_file.content
+            if #file == 0 then
+                ret = delete_block(ret, i)
+                local ret_block, ret_err = third_step(ret)
+                return ret_block, ret_err
+            else
+                local code: vector(block)
+                for j=0,<#file do
+                    local line = file[j]
+                    if #line == 0 then
+                        continue
+                    end
+                    local mc, err, pretty = assemble_line(line)
+                    if err ~= 0 then
+                        io.stderr:write("Error, invalid instruction.", line, "\n")
+                        return ret, error_t.instruction
+                    end
+                    local new_block: block
+                    new_block.type = block_types.machine_code
+                    new_block.content.machine_code = {mc, pretty}
+                    code:push(new_block)
+                end
+                ret = delete_block(ret, i)
+                for j=0,<#code do
+                    ret = insert_block(ret, i+j, code[j])
+                end
+                local ret_block, ret_err = third_step(ret)
+                return ret_block, ret_err
+            end
+        elseif ret[i].type == block_types.rawbytes then
+            local content = ret[i].content.rawbytes.content
+            ret = delete_block(ret, i)
+            for j=0,<#content do
+                local new_block: block
+                new_block.type = block_types.rawbyte
+                new_block.content.rawbyte = {content[j]}
+                ret = insert_block(ret, i+j, new_block)
+            end
+            local ret_block, ret_err = third_step(ret)
+            return ret_block, ret_err
+        end
+    end
+    return ret, error_t.OK
+end
+
+
 -- To delete in final product
 global function asm_test()
     local including_file, err = open_file_block("./directives.asm")
@@ -311,4 +411,6 @@ global function asm_test()
     print(stringify_blocks(step1_vector))
     local step2_vector = second_step(step1_vector)
     print(stringify_blocks(step2_vector))
+    local step3_vector = third_step(step2_vector)
+    print(stringify_blocks(step3_vector))
 end
