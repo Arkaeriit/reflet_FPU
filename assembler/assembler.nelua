@@ -34,6 +34,8 @@ As the fifth step, when the address of everything can be known, a linking can be
 
 Lastly, the fifth step is to write the output binary file.
 
+For multiples steps the size of addresses is used. It is measured in bytes.
+
 ]]
 
 --[[ TODO
@@ -71,7 +73,8 @@ local block_types = @enum {
     alignment_directive,
     rawbyte,
     rawbytes,
-    label
+    label,
+    label_width --type used to represent the extra bytes an address might represent
 }
 
 local pure_file_block = @record {
@@ -375,7 +378,7 @@ local function third_step(in_block: vector(block)) : (vector(block), error_t)
                     end
                     local mc, err, pretty = assemble_line(line)
                     if err ~= 0 then
-                        io.stderr:write("Error, invalid instruction.", line, "\n")
+                        io.stderr:write("Error, invalid instruction. ", line, "\n")
                         return ret, error_t.instruction
                     end
                     local new_block: block
@@ -408,10 +411,19 @@ end
 
 ----------------------------------- Fourth step --------------------------------
 
-local function fourth_step(in_block: vector(block)) : (vector(block), error_t)
+local function fourth_step(in_block: vector(block), addr_size: integer) : (vector(block), error_t)
     local ret: vector(block)
     for i=0,<#in_block do
-        if in_block[i].type == block_types.label or in_block[i].type == block_types.rawbyte then
+        if in_block[i].type == block_types.label then
+            ret:push(in_block[i])
+            if not in_block[i].content.label.set then
+                for i=1,<addr_size do
+                    local new_block: block
+                    new_block.type = block_types.label_width
+                    ret:push(new_block)
+                end
+            end
+        elseif in_block[i].type == block_types.rawbyte then
             ret:push(in_block[i])
         elseif in_block[i].type == block_types.machine_code then
             local new_block: block
@@ -437,8 +449,6 @@ end
 
 ----------------------------------- Fifth step ---------------------------------
 
--- For this step the size of addresses is used. It is measured in bytes.
-
 -- Generate a hash map indexed with the keys of labels and containing the
 -- address of those labels.
 local function gen_label_map(in_block: vector(block), addr_size: integer): (hashmap(string, uint64), error_t)
@@ -458,7 +468,7 @@ local function gen_label_map(in_block: vector(block), addr_size: integer): (hash
             else
                 curr_addr = curr_addr + addr_size
             end
-        elseif in_block[i].type == block_types.rawbyte then
+        elseif in_block[i].type == block_types.rawbyte or in_block[i].type == block_types.label_width then
             curr_addr = curr_addr + 1
         else
             io.stderr:write("Error, unexpected type (", in_block[i].type, ") in fifth step.\n")
@@ -487,8 +497,12 @@ local function fifth_step(in_block: vector(block), addr_size: integer): (vector(
                     ret:push((addr >> (i*8)) & 0xFF)
                 end
             end
-        else --Note: no need to check the type of the block as this check have been made in gen_label_map
+        elseif in_block[i].type == block_types.rawbyte then
             ret:push(in_block[i].content.rawbyte.content)
+        else
+            -- Note: no need to check the type of the block as this check have
+            -- been made in gen_label_map, we know that here can only be blocks
+            -- of type label_width that should be ignored.
         end
     end
     return ret, error_t.OK
@@ -507,6 +521,7 @@ end
 
 -- To delete in final product
 global function asm_test()
+    local addr_size = 2
     local including_file, err = open_file_block("./directives.asm")
     print(err)
     local mini_vector : vector(block)
@@ -518,8 +533,8 @@ global function asm_test()
     print(stringify_blocks(step2_vector))
     local step3_vector = third_step(step2_vector)
     print(stringify_blocks(step3_vector))
-    local step4_vector = fourth_step(step3_vector)
+    local step4_vector = fourth_step(step3_vector, addr_size)
     print(stringify_blocks(step4_vector))
-    local step5_vector = fifth_step(step4_vector, 2)
+    local step5_vector = fifth_step(step4_vector, addr_size)
     print(strigify_bytes(step5_vector))
 end
