@@ -1,3 +1,11 @@
+@define swapBytes 2
+    @rawbytes $2 $1
+@end
+
+@define doubldeByte 1
+    @rawbytes $1 $1
+@end
+
 @label start
 @import code.asm
 @label endCode
@@ -9,4 +17,7 @@
 @labref coucou
 @labref start
 @labref endCode
+
+swapBytes 11 88
+doubldeByte 22
 

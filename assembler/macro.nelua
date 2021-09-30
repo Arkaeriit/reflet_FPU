@@ -115,7 +115,7 @@ end
 --as a pure_file and also an error code
 global EXP_MACRO_ERR_OK = 0
 global EXP_MACRO_ERR_NOT_FOUND = 1
-global EXP_MACRO_ERR_NOT_INVALID_ARG = 2
+global EXP_MACRO_ERR_INVALID_ARG = 2
 global function expend_macro(line: pure_line): (pure_file, integer)
     local ret: pure_file
     --Funding desired macro in list of registered macros
@@ -133,7 +133,7 @@ global function expend_macro(line: pure_line): (pure_file, integer)
     end
     --Check that all required arguments are given
     if #line ~= target_macro.number_of_args + 1 then
-        return ret, EXP_MACRO_ERR_NOT_INVALID_ARG
+        return ret, EXP_MACRO_ERR_INVALID_ARG
     end
     --Generating the expended content, taking the content of the macro and replacing argument flags with the argument given in `line`
     ret = target_macro.content:copy()

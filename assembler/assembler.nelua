@@ -59,12 +59,13 @@ require 'stringbuilder'
 
 local error_t = @enum {
     OK = 0,
-    file_read,
-    file_write,
-    arguments,
-    instruction,
-    type,
-    label,
+    file_read = 1,
+    file_write = 2,
+    arguments = 3,
+    instruction = 4,
+    type = 5,
+    label = 6,
+    macro = 7,
 }
 
 local block_types = @enum {
@@ -309,6 +310,7 @@ end
 -- TODO: maybe clean up code with meta-programming
 local function second_step(in_block: vector(block)) : (vector(block), error_t)
     local ret = in_block:copy()
+    print(stringify_blocks(ret))
     for i=0,<#ret do
         if ret[i].type == block_types.pure_file then
             local file = ret[i].content.pure_file.content
@@ -317,8 +319,42 @@ local function second_step(in_block: vector(block)) : (vector(block), error_t)
                 if #line == 0 then
                     continue
                 end
-                if line[0] == "@define" then --TODO: hard one
-                elseif is_macro(line[0]) then --TODO
+                if line[0] == "@define" then
+                    if #line ~= 3 then
+                        io.stderr:write("Error, invalid number of arguments for a label directive.\n")
+                        return ret, error_t.arguments
+                    end
+                    local end_label = j
+                    while true do
+                        if end_label >= #file then
+                            io.stderr:write("Error, macro", line[1], " should finish with @end.\n")
+                            return ret, error_t.macro
+                        end
+                        local line = file[end_label]
+                        if line[0] == "@end" then
+                            break
+                        end
+                        end_label = end_label + 1
+                    end
+                    local macro = file:sub(j+1, end_label-1)
+                    local macro_ok = register_macro(line[1], tointeger(line[2]), macro)
+                    if not macro_ok then
+                        io.stderr:write("Error, macro", line[1], " could not be registered.\n")
+                        return ret, error_t.macro
+                    end
+                    ret = slice_pure_file_block(ret, i, j, end_label)
+                    local ret_block, ret_err = second_step(ret)
+                    return ret_block, ret_err
+                elseif is_macro(line[0]) then
+                    local macro, err = expend_macro(line)
+                    if err == EXP_MACRO_ERR_INVALID_ARG then --Note: the error related to macro not found is not possible as we check it with is_macro
+                        io.stderr:write("Error, invalid number of arguments for macro", line[0], ".\n")
+                        return ret, error_t.macro
+                    end
+                    local macro_block: pure_file_block = {macro, line[0], 1}
+                    ret = insert_block_in_file(ret, i, j, make_pure_file_block(macro_block))
+                    local ret_block, ret_err = second_step(ret)
+                    return ret_block, ret_err
                 elseif line[0] == "@label" then
                     if #line ~= 2 then
                         io.stderr:write("Error, invalid number of arguments for a label directive.\n")
