@@ -150,7 +150,7 @@ global function expend_macro(line: pure_line): (pure_file, integer)
     return ret, EXP_MACRO_ERR_OK
 end
 
--- This funtions return true if the argument 'name' is the name
+-- This function returns true if the argument 'name' is the name
 -- of a macro
 global function is_macro(name: string): boolean
     for i=0,<#macro_list do
@@ -159,5 +159,10 @@ global function is_macro(name: string): boolean
         end
     end
     return false
+end
+
+-- Purges all defined macros, made for testing purpose
+global function purge_macros()
+    macro_list:clear()
 end
 

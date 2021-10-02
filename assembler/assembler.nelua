@@ -57,7 +57,7 @@ require 'stringbuilder'
 
 ----------------------------------- Data types ---------------------------------
 
-local error_t = @enum {
+global error_t = @enum {
     OK = 0,
     file_read = 1,
     file_write = 2,
@@ -310,7 +310,6 @@ end
 -- TODO: maybe clean up code with meta-programming
 local function second_step(in_block: vector(block)) : (vector(block), error_t)
     local ret = in_block:copy()
-    print(stringify_blocks(ret))
     for i=0,<#ret do
         if ret[i].type == block_types.pure_file then
             local file = ret[i].content.pure_file.content
@@ -339,7 +338,7 @@ local function second_step(in_block: vector(block)) : (vector(block), error_t)
                     local macro = file:sub(j+1, end_label-1)
                     local macro_ok = register_macro(line[1], tointeger(line[2]), macro)
                     if not macro_ok then
-                        io.stderr:write("Error, macro", line[1], " could not be registered.\n")
+                        io.stderr:write("Error, macro ", line[1], " could not be registered.\n")
                         return ret, error_t.macro
                     end
                     ret = slice_pure_file_block(ret, i, j, end_label)
@@ -565,6 +564,45 @@ local function fifth_step(in_block: vector(block), addr_size: integer): (vector(
     return ret, error_t.OK
 end
 
+---------------------------------- Full assembly -------------------------------
+
+-- This function generates a vector of executable Reflet FPU machine code
+global function assemble(input_file: string, runtime_start: string, runtime_end: string, addr_size: integer): (vector(byte), error_t)
+    local ret_err: vector(byte)
+    local in_file_block, err = open_file_block(input_file)
+    if err ~= error_t.OK then
+        io.stderr:write("Error, unable to open ", input_file, ".\n")
+        return ret_err, err
+    end
+    local run_start_block: pure_file_block = {purify_string(runtime_start), "runtime_start", 1}
+    local run_end_block: pure_file_block = {purify_string(runtime_end), "runtime_end", 1}
+    local initial_vector: vector(block)
+    initial_vector:push(make_pure_file_block(run_start_block))
+    initial_vector:push(make_pure_file_block(in_file_block))
+    initial_vector:push(make_pure_file_block(run_end_block))
+    local step1_vector, err1 = first_step(initial_vector)
+    if err1 ~= error_t.OK then
+        return ret_err, err1
+    end
+    local step2_vector, err2 = second_step(step1_vector)
+    if err2 ~= error_t.OK then
+        return ret_err, err2
+    end
+    local step3_vector, err3 = third_step(step2_vector)
+    if err3 ~= error_t.OK then
+        return ret_err, err3
+    end
+    local step4_vector, err4 = fourth_step(step3_vector, addr_size)
+    if err4 ~= error_t.OK then
+        return ret_err, err4
+    end
+    local step5_vector, err5 = fifth_step(step4_vector, addr_size)
+    if err5 ~= error_t.OK then
+        return ret_err, err5
+    end
+    return step5_vector, error_t.OK
+end
+
 -------------------------------------- Test ------------------------------------
 
 -- To delete in final product
@@ -594,4 +632,10 @@ global function asm_test()
     print(stringify_blocks(step4_vector))
     local step5_vector = fifth_step(step4_vector, addr_size)
     print(strigify_bytes(step5_vector))
+    purge_macros()
+    print("<----------->")
+    local comp, err_cmp = assemble("./directives.asm", (""), (""), addr_size)
+    print(strigify_bytes(comp))
+    print(err_cmp)
 end
+
