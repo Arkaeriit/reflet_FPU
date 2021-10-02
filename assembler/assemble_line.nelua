@@ -30,6 +30,9 @@ local flag_value: []flag_conversion <const> = {
     {"OPPOSITE", 1},
     {"ABS", 2},
     {"NEG", 3},
+    --Jump flags
+    {"ALWAYS", 0},
+    {"IF_CMP", 1},
 }
 
 

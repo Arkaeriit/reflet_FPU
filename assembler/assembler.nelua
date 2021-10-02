@@ -42,7 +42,7 @@ For multiples steps the size of addresses is used. It is measured in bytes.
 
 - when error encountered in file blocks should tell in which file and
 at which line the error happened.
--- make import work in tree like file systems
+- make import work in tree like file systems
 
 ]]
 
@@ -53,6 +53,7 @@ require 'string'
 require 'parser'
 require 'hashmap'
 require 'filestream'
+require 'assemble_line'
 require 'stringbuilder'
 
 ----------------------------------- Data types ---------------------------------
@@ -326,7 +327,7 @@ local function second_step(in_block: vector(block)) : (vector(block), error_t)
                     local end_label = j
                     while true do
                         if end_label >= #file then
-                            io.stderr:write("Error, macro", line[1], " should finish with @end.\n")
+                            io.stderr:write("Error, macro ", line[1], " should finish with @end.\n")
                             return ret, error_t.macro
                         end
                         local line = file[end_label]
@@ -435,7 +436,7 @@ local function third_step(in_block: vector(block)) : (vector(block), error_t)
                     end
                     local mc, err, pretty = assemble_line(line)
                     if err ~= 0 then
-                        io.stderr:write("Error, invalid instruction. ", line, "\n")
+                        io.stderr:write("Error, invalid instruction. ", line:__tostring(), "\n")
                         return ret, error_t.instruction
                     end
                     local new_block: block
