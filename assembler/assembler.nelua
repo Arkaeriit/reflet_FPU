@@ -40,9 +40,6 @@ For multiples steps the size of addresses is used. It is measured in bytes.
 
 --[[ TODO
 
-- when error encountered in file blocks should tell in which file and
-at which line the error happened.
-- make import work in tree like file systems
 - limit use of recursion
 
 ]]
@@ -83,7 +80,8 @@ local pure_file_block = @record {
     content: pure_file,
     name: string,
     place: integer,
-    is_macro: boolean
+    is_macro: boolean,
+    dir: string
 }
 
 local machine_code_block = @record {
@@ -246,8 +244,8 @@ local function slice_pure_file_block(in_block: vector(block), i: integer, line_s
     end
     local start_file = in_block[i].content.pure_file.content:sub(0,line_start-1)
     local end_file = in_block[i].content.pure_file.content:sub(line_stop+1,#in_block[i].content.pure_file.content - 1)
-    local start_block: pure_file_block = {start_file, in_block[i].content.pure_file.name, in_block[i].content.pure_file.place, in_block[i].content.pure_file.is_macro}
-    local end_block: pure_file_block = {end_file, in_block[i].content.pure_file.name, in_block[i].content.pure_file.place+line_stop+1, in_block[i].content.pure_file.is_macro}
+    local start_block: pure_file_block = {start_file, in_block[i].content.pure_file.name, in_block[i].content.pure_file.place, in_block[i].content.pure_file.is_macro, in_block[i].content.pure_file.dir}
+    local end_block: pure_file_block = {end_file, in_block[i].content.pure_file.name, in_block[i].content.pure_file.place+line_stop+1, in_block[i].content.pure_file.is_macro, in_block[i].content.pure_file.dir}
     local ret = swap_block(in_block, i, make_pure_file_block(start_block))
     ret = insert_block(ret, i+1, make_pure_file_block(end_block))
     return ret
@@ -261,7 +259,7 @@ local function insert_block_in_file(in_block: vector(block), file_index: integer
     return ret
 end
 
--- Repport an error at the i-th line of the given file block
+-- Report an error at the i-th line of the given file block
 local function error_in_file(in_block: pure_file_block, i: integer)
     local builder: stringbuilder
     if in_block.is_macro then
@@ -278,6 +276,16 @@ end
 
 ----------------------------------- First step ---------------------------------
 
+-- From the path to a file, returns the directory where is file is
+local function dir(filename: string): string
+    for i=#filename,1,-1 do
+        if filename:sub(i,i) == "/" then
+            return filename:sub(1,i)
+        end
+    end
+    return ""
+end
+
 --Open a file as a pure_file_block
 local function open_file_block(filename: string): (pure_file_block, error_t)
     local ret: pure_file_block
@@ -289,6 +297,7 @@ local function open_file_block(filename: string): (pure_file_block, error_t)
     ret.name = filename
     ret.place = 1
     ret.is_macro= false
+    ret.dir = dir(filename)
     return ret, error_t.OK
 end
 
@@ -309,7 +318,7 @@ local function first_step(in_block: vector(block)) : (vector(block), error_t)
                         io.stderr:write("Invalid number of arguments for an import directive.\n")
                         return ret, error_t.arguments
                     end
-                    local imported_file, err = open_file_block(line[1])
+                    local imported_file, err = open_file_block(in_block[i].content.pure_file.dir .. line[1])
                     if err ~= error_t.OK then
                         error_in_file(in_block[i].content.pure_file, j)
                         io.stderr:write("Unable to open ", line[1], ".\n")
@@ -375,7 +384,7 @@ local function second_step(in_block: vector(block)) : (vector(block), error_t)
                         io.stderr:write("Invalid number of arguments for macro", line[0], ".\n")
                         return ret, error_t.macro
                     end
-                    local macro_block: pure_file_block = {macro, line[0], 1, true}
+                    local macro_block: pure_file_block = {macro, line[0], 1, true, ""}
                     ret = insert_block_in_file(ret, i, j, make_pure_file_block(macro_block))
                     local ret_block, ret_err = second_step(ret)
                     return ret_block, ret_err
@@ -604,8 +613,8 @@ global function assemble(input_file: string, runtime_start: string, runtime_end:
         io.stderr:write("Error, unable to open ", input_file, ".\n")
         return ret_err, err
     end
-    local run_start_block: pure_file_block = {purify_string(runtime_start), "runtime_start", 1, true}
-    local run_end_block: pure_file_block = {purify_string(runtime_end), "runtime_end", 1, true}
+    local run_start_block: pure_file_block = {purify_string(runtime_start), "runtime_start", 1, true, ""}
+    local run_end_block: pure_file_block = {purify_string(runtime_end), "runtime_end", 1, true, ""}
     local initial_vector: vector(block)
     initial_vector:push(make_pure_file_block(run_start_block))
     initial_vector:push(make_pure_file_block(in_file_block))
