@@ -266,6 +266,7 @@ global function assemble_line(line: pure_line): (uint16, integer, string)
     local extended = pre_assemble(line)
     check_extended(extended)
     local machine_code = post_assemble(extended)
+    --print(extended)
     return machine_code, 0, tostring(extended)
 end
 

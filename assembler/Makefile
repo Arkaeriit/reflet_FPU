@@ -1,5 +1,5 @@
-#CFLAGS := -g
-CFLAGS := -Os -fdata-sections -ffunction-sections -Wl,--gc-sections
+CFLAGS := -g
+#CFLAGS := -Os -fdata-sections -ffunction-sections -Wl,--gc-sections
 
 all: reflet-fpu-asm
 
