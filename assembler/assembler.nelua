@@ -38,12 +38,6 @@ For multiples steps the size of addresses is used. It is measured in bytes.
 
 ]]
 
---[[ TODO
-
-- limit use of recursion
-
-]]
-
 require 'io'
 require 'macro'
 require 'vector'
@@ -57,6 +51,7 @@ require 'stringbuilder'
 ----------------------------------- Data types ---------------------------------
 
 global error_t = @enum {
+    WIP = -1,
     OK = 0,
     file_read = 1,
     file_write = 2,
@@ -325,8 +320,7 @@ local function first_step(in_block: vector(block)) : (vector(block), error_t)
                         return ret, err
                     end
                     ret = insert_block_in_file(ret, i, j, make_pure_file_block(imported_file))
-                    local ret_block, ret_err = first_step(ret)
-                    return ret_block, ret_err
+                    return ret, error_t.WIP
                 end
             end
         end
@@ -375,8 +369,7 @@ local function second_step(in_block: vector(block)) : (vector(block), error_t)
                         return ret, error_t.macro
                     end
                     ret = slice_pure_file_block(ret, i, j, end_label)
-                    local ret_block, ret_err = second_step(ret)
-                    return ret_block, ret_err
+                    return ret, error_t.WIP
                 elseif is_macro(line[0]) then
                     local macro, err = expend_macro(line)
                     if err == EXP_MACRO_ERR_INVALID_ARG then --Note: the error related to macro not found is not possible as we check it with is_macro
@@ -386,8 +379,7 @@ local function second_step(in_block: vector(block)) : (vector(block), error_t)
                     end
                     local macro_block: pure_file_block = {macro, line[0], 1, true, ""}
                     ret = insert_block_in_file(ret, i, j, make_pure_file_block(macro_block))
-                    local ret_block, ret_err = second_step(ret)
-                    return ret_block, ret_err
+                    return ret, error_t.WIP
                 elseif line[0] == "@label" then
                     if #line ~= 2 then
                         error_in_file(in_block[i].content.pure_file, j)
@@ -399,8 +391,7 @@ local function second_step(in_block: vector(block)) : (vector(block), error_t)
                     new_block.type = block_types.label
                     new_block.content.label = lab_blk
                     ret = insert_block_in_file(ret, i, j, new_block)
-                    local ret_block, ret_err = second_step(ret)
-                    return ret_block, ret_err
+                    return ret, error_t.WIP
                 elseif line[0] == "@labref" then
                     if #line ~= 2 then
                         error_in_file(in_block[i].content.pure_file, j)
@@ -412,8 +403,7 @@ local function second_step(in_block: vector(block)) : (vector(block), error_t)
                     new_block.type = block_types.label
                     new_block.content.label = lab_blk
                     ret = insert_block_in_file(ret, i, j, new_block)
-                    local ret_block, ret_err = second_step(ret)
-                    return ret_block, ret_err
+                    return ret, error_t.WIP
                 elseif line[0] == "@align" then
                     if #line ~= 2 then
                         error_in_file(in_block[i].content.pure_file, j)
@@ -425,8 +415,7 @@ local function second_step(in_block: vector(block)) : (vector(block), error_t)
                     new_block.type = block_types.alignment_directive
                     new_block.content.alignment_directive = lab_blk
                     ret = insert_block_in_file(ret, i, j, new_block)
-                    local ret_block, ret_err = second_step(ret)
-                    return ret_block, ret_err
+                    return ret, error_t.WIP
                 elseif line[0] == "@constant" then --TODO: find way to manipulate floats
                 elseif line[0] == "@rawbytes" then
                     if #line < 2 then
@@ -443,8 +432,7 @@ local function second_step(in_block: vector(block)) : (vector(block), error_t)
                     new_block.type = block_types.rawbytes
                     new_block.content.rawbytes = lab_blk
                     ret = insert_block_in_file(ret, i, j, new_block)
-                    local ret_block, ret_err = second_step(ret)
-                    return ret_block, ret_err
+                    return ret, error_t.WIP
                 end
             end
         end
@@ -462,8 +450,7 @@ local function third_step(in_block: vector(block)) : (vector(block), error_t)
             local file = ret[i].content.pure_file.content
             if #file == 0 then
                 ret = delete_block(ret, i)
-                local ret_block, ret_err = third_step(ret)
-                return ret_block, ret_err
+                return ret, error_t.WIP
             else
                 local code: vector(block)
                 for j=0,<#file do
@@ -486,8 +473,7 @@ local function third_step(in_block: vector(block)) : (vector(block), error_t)
                 for j=0,<#code do
                     ret = insert_block(ret, i+j, code[j])
                 end
-                local ret_block, ret_err = third_step(ret)
-                return ret_block, ret_err
+                return ret, error_t.WIP
             end
         elseif ret[i].type == block_types.rawbytes then
             local content = ret[i].content.rawbytes.content
@@ -498,8 +484,7 @@ local function third_step(in_block: vector(block)) : (vector(block), error_t)
                 new_block.content.rawbyte = {content[j]}
                 ret = insert_block(ret, i+j, new_block)
             end
-            local ret_block, ret_err = third_step(ret)
-            return ret_block, ret_err
+            return ret, error_t.WIP
         end
     end
     return ret, error_t.OK
@@ -605,6 +590,15 @@ end
 
 ---------------------------------- Full assembly -------------------------------
 
+-- This function runs a step of the assembly until it returns a definitive value
+local function run_step(in_block: vector(block), step: function(a: vector(block)): (vector(block), error_t)): (vector(block), error_t)
+    local ret, err = step(in_block)
+    while err == error_t.WIP do
+        ret, err = step(ret)
+    end
+    return ret, err
+end
+
 -- This function generates a vector of executable Reflet FPU machine code
 global function assemble(input_file: string, runtime_start: string, runtime_end: string, addr_size: integer): (vector(byte), error_t)
     local ret_err: vector(byte)
@@ -619,15 +613,15 @@ global function assemble(input_file: string, runtime_start: string, runtime_end:
     initial_vector:push(make_pure_file_block(run_start_block))
     initial_vector:push(make_pure_file_block(in_file_block))
     initial_vector:push(make_pure_file_block(run_end_block))
-    local step1_vector, err1 = first_step(initial_vector)
+    local step1_vector, err1 = run_step(initial_vector, first_step)
     if err1 ~= error_t.OK then
         return ret_err, err1
     end
-    local step2_vector, err2 = second_step(step1_vector)
+    local step2_vector, err2 = run_step(step1_vector, second_step)
     if err2 ~= error_t.OK then
         return ret_err, err2
     end
-    local step3_vector, err3 = third_step(step2_vector)
+    local step3_vector, err3 = run_step(step2_vector, third_step)
     if err3 ~= error_t.OK then
         return ret_err, err3
     end
@@ -661,11 +655,11 @@ global function asm_test()
     local mini_vector : vector(block)
     mini_vector:push(make_pure_file_block(including_file))
     print(stringify_blocks(mini_vector))
-    local step1_vector = first_step(mini_vector)
+    local step1_vector = run_step(mini_vector, first_step)
     print(stringify_blocks(step1_vector))
-    local step2_vector = second_step(step1_vector)
+    local step2_vector = run_step(step1_vector, second_step)
     print(stringify_blocks(step2_vector))
-    local step3_vector = third_step(step2_vector)
+    local step3_vector = run_step(step2_vector, third_step)
     print(stringify_blocks(step3_vector))
     local step4_vector = fourth_step(step3_vector, addr_size)
     print(stringify_blocks(step4_vector))
