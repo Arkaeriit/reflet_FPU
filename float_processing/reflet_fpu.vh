@@ -30,10 +30,10 @@
 //Control unit opcode
 `define OPP_PUSH      6'h00 //Note: no need for NOP as the AU already have one
 `define OPP_POP       6'h01
-`define OPP_JMP       6'h02
-`define OPP_NOTIF     6'h03
-`define OPP_MOV       6'h04
-`define OPP_SET       6'h05
+`define OPP_NOTIF     6'h02
+`define OPP_MOV       6'h03
+`define OPP_SET       6'h04
+`define OPP_JMP       6'h05
 `define OPP_CALL      6'h06
 `define OPP_RET       6'h07
 
