@@ -7,6 +7,7 @@ The various modules in this repository are designed to work with IEEE 754 floati
 
 # Basic blocs
 The modules doing simple floating points operation are in the `floating_points_operations` folder. The available operations are the following:
+
 * Conversion from integer to floating-point number
 * Conversion from floating-point number to integer
 * Addition and subtraction
@@ -25,6 +26,7 @@ This module can either add or subtract two floating-point numbers. The operation
 
 ## reflet\_float\_comp
 This module is used to compare two floating-point numbers `in1` and `in2`. The result of the comparison is written on the port `out`. The comparison made depends on the input `order`.
+
 * If `order` is set to `2'b00`, `out` will stay at 0.
 * If `order` is set to `2'b01`, `out` will be set to 1 if both inputs are equals.
 * If `order` is set to `2'b10`, `out` will be set to 1 if `in1` is strictly smaller than `in2`.
@@ -32,6 +34,7 @@ This module is used to compare two floating-point numbers `in1` and `in2`. The r
 
 ## reflet\_set\_sign
 This module is used to change the sign of a floating-point number. The effect on the sign is controlled by the input `order`.
+
 * If `order` is set to `2'b00`, `out` will be set to 0.
 * If `order` is set to `2'b01`, `out` will be the opposite of `in`.
 * If `order` is set to `2'b10`, `out` will have the same absolute value as `in` but will be positive.
@@ -55,6 +58,7 @@ The AU (arithmetic unit) takes tree floating-point numbers as input (`flt_in1`, 
 The operation made by the AU is chosen by the `opcode` input. 
 
 Here is the list of available operations:
+
 | Mnemonic  | Opcode  | Effect                                            |
 |-----------|---------|---------------------------------------------------|
 | NOP       | `6'h00` | No effects                                        |
